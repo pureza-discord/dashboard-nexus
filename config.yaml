@@ -1,0 +1,46 @@
+# Leads Scraper Premium 2026 - Configuração
+
+performance:
+  concurrency: 3
+  random_delay_min: 1.8
+  random_delay_max: 6.0
+
+output:
+  dir: .
+
+# Seus serviços (usado pelo procura_servico para buscar quem PRECISA deles)
+meus_servicos:
+  - "Sistemas internos / Web apps"
+  - "CRM sob medida / Automação"
+  - "Site / Design / UX"
+  - "Landing page"
+  - "Identidade visual"
+
+queries:
+  # Google Maps: busca empresas que PRECISAM dos seus serviços
+  - pais: Brasil
+    nicho: "Clínica estética / Harmonização facial"
+    cidade: "Vitória-ES"
+    limite: 120
+    procura_servico: true
+
+  - pais: Portugal
+    nicho: "Advogado trabalhista"
+    cidade: "Lisboa"
+    limite: 80
+    procura_servico: false
+
+  - pais: Australia
+    nicho: "Roofing / Solar panels"
+    cidade: "Sydney"
+    limite: 80
+    procura_servico: false
+
+google_sheets:
+  enabled: false
+  sheet_id: ""
+  credentials_path: ""
+  worksheet: "Leads"
+
+database:
+  path: "leads.db"
