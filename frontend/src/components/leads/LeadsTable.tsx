@@ -1,172 +1,235 @@
-import { Phone, Globe, Mail, MessageCircle, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
+import { ChevronDown, ChevronUp, Mail, Phone, Trash2 } from 'lucide-react'
+import type { LeadItem, LeadStatus } from '../../hooks/useLeads'
 import Badge from '../ui/Badge'
 import { SkeletonTable } from '../ui/Skeleton'
-import { formatPhone, truncate } from '../../utils/format'
-
-interface Lead {
-  _id: number
-  _status: string
-  nome_empresa?: string
-  telefone?: string
-  email?: string
-  site?: string
-  cidade?: string
-  pais?: string
-  observacoes?: string
-  instagram?: string
-}
+import { formatCurrency, formatPhone, truncate } from '../../utils/format'
 
 interface Props {
-  leads: Lead[]
+  leads: LeadItem[]
   loading: boolean
-  selected: Set<number>
-  onSelect: (id: number) => void
+  selected: Set<string>
+  onSelect: (id: string) => void
   onSelectAll: () => void
-  onStatusChange: (id: number, status: string) => void
-  onDelete: (id: number) => void
-  onDetail: (id: number) => void
+  onPatch: (id: string, payload: Record<string, unknown>) => void
+  onDelete: (id: string) => void
+  onDetail: (id: string) => void
   sortBy: string
   sortDir: string
   onSort: (col: string) => void
 }
 
 const columns = [
-  { key: 'status', label: 'Status', w: 'w-24' },
-  { key: 'nome_empresa', label: 'Empresa', w: 'min-w-[180px]' },
-  { key: 'telefone', label: 'Telefone', w: 'w-40' },
-  { key: 'email', label: 'Email', w: 'w-44' },
-  { key: 'site', label: 'Site', w: 'w-36' },
-  { key: 'cidade', label: 'Cidade', w: 'w-32' },
-  { key: 'pais', label: 'País', w: 'w-24' },
-  { key: 'observacoes', label: 'Obs', w: 'w-32' },
+  { key: 'status', label: 'Status', width: 'w-28', sortable: true },
+  { key: 'empresa', label: 'Empresa', width: 'min-w-[220px]', sortable: true },
+  { key: 'telefone', label: 'Telefone', width: 'w-44', sortable: false },
+  { key: 'email', label: 'Email', width: 'w-52', sortable: false },
+  { key: 'cidade', label: 'Cidade', width: 'w-32', sortable: true },
+  { key: 'ticket_estimado', label: 'Ticket', width: 'w-34', sortable: true },
+  { key: 'chance_fechamento', label: 'Chance', width: 'w-26', sortable: true },
+  { key: 'proximo_follow_up', label: 'Follow-up', width: 'w-40', sortable: false },
+  { key: 'ultimo_contato', label: 'Último contato', width: 'w-40', sortable: false },
+  { key: 'observacoes', label: 'Observações', width: 'w-52', sortable: false },
+]
+
+const statusOptions: { value: LeadStatus; label: string }[] = [
+  { value: 'novos', label: 'Novos' },
+  { value: 'contatados', label: 'Contatados' },
+  { value: 'proposta', label: 'Proposta' },
+  { value: 'fechados', label: 'Fechados' },
+  { value: 'perdidos', label: 'Perdidos' },
 ]
 
 function SortIcon({ col, sortBy, sortDir }: { col: string; sortBy: string; sortDir: string }) {
   if (col !== sortBy) return null
-  return sortDir === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+  return sortDir === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
 }
 
 export default function LeadsTable({
-  leads, loading, selected, onSelect, onSelectAll, onStatusChange, onDelete, onDetail, sortBy, sortDir, onSort,
+  leads,
+  loading,
+  selected,
+  onSelect,
+  onSelectAll,
+  onPatch,
+  onDelete,
+  onDetail,
+  sortBy,
+  sortDir,
+  onSort,
 }: Props) {
-  const allSelected = leads.length > 0 && leads.every((l) => selected.has(l._id))
+  const allSelected = leads.length > 0 && leads.every((lead) => selected.has(lead.id))
 
   return (
-    <div className="bg-nexus-card border border-white/[0.06] rounded-xl overflow-hidden">
+    <div className="overflow-hidden rounded-xl border border-white/[0.06] bg-[#0a0a0a]">
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[1680px] text-[13px]">
           <thead>
             <tr className="border-b border-white/[0.06]">
-              <th className="px-3 py-3 w-8">
+              <th className="w-10 px-3 py-3">
                 <input
                   type="checkbox"
                   checked={allSelected}
                   onChange={onSelectAll}
-                  className="accent-blue-500 rounded"
+                  className="accent-white"
                 />
               </th>
-              {columns.map((c) => (
+              {columns.map((column) => (
                 <th
-                  key={c.key}
-                  onClick={() => onSort(c.key)}
-                  className={`px-3 py-3 text-left text-[11px] font-medium text-zinc-500 uppercase tracking-wider cursor-pointer hover:text-zinc-300 transition select-none ${c.w}`}
+                  key={column.key}
+                  onClick={() => {
+                    if (column.sortable) onSort(column.key)
+                  }}
+                  className={`select-none px-3 py-3 text-left text-[11px] font-medium uppercase tracking-[0.12em] text-[#555555] ${column.width} ${
+                    column.sortable ? 'cursor-pointer transition hover:text-[#999999]' : ''
+                  }`}
                 >
-                  <span className="flex items-center gap-1">
-                    {c.label}
-                    <SortIcon col={c.key} sortBy={sortBy} sortDir={sortDir} />
+                  <span className="inline-flex items-center gap-1">
+                    {column.label}
+                    {column.sortable ? <SortIcon col={column.key} sortBy={sortBy} sortDir={sortDir} /> : null}
                   </span>
                 </th>
               ))}
-              <th className="px-3 py-3 w-10" />
+              <th className="w-12 px-3 py-3" />
             </tr>
           </thead>
+
           <tbody className="divide-y divide-white/[0.04]">
             {loading ? (
               <SkeletonTable rows={10} cols={columns.length + 2} />
             ) : leads.length === 0 ? (
               <tr>
-                <td colSpan={columns.length + 2} className="px-6 py-16 text-center text-zinc-600">
+                <td colSpan={columns.length + 2} className="px-6 py-16 text-center text-[13px] text-[#555555]">
                   Nenhum lead encontrado
                 </td>
               </tr>
             ) : (
-              leads.map((l) => {
-                const tel = l.telefone || ''
+              leads.map((lead) => {
+                const tel = lead.telefone || ''
                 const cleanTel = formatPhone(tel)
-                const waUrl = cleanTel ? `https://wa.me/${cleanTel.replace('+', '')}` : ''
-                const siteHost = l.site ? (() => { try { return new URL(l.site).hostname.replace('www.', '') } catch { return l.site } })() : ''
 
                 return (
-                  <tr key={l._id} className="group hover:bg-white/[0.02] transition">
+                  <tr key={lead.id} className="group transition-colors hover:bg-white/[0.02]">
                     <td className="px-3 py-2.5">
                       <input
                         type="checkbox"
-                        checked={selected.has(l._id)}
-                        onChange={() => onSelect(l._id)}
-                        className="accent-blue-500 rounded"
+                        checked={selected.has(lead.id)}
+                        onChange={() => onSelect(lead.id)}
+                        className="accent-white"
                       />
                     </td>
-                    <td className="px-3 py-2.5">
+
+                    <td className="px-3 py-2.5 align-top">
                       <select
-                        value={l._status}
-                        onChange={(e) => onStatusChange(l._id, e.target.value)}
-                        className="bg-transparent border-0 text-[11px] font-semibold cursor-pointer focus:ring-0 p-0"
+                        value={lead.status}
+                        onChange={(e) => onPatch(lead.id, { status: e.target.value })}
+                        className="mb-1 block rounded border border-white/[0.08] bg-black px-2 py-1 text-[11px] font-medium text-[#cccccc]"
                       >
-                        {['novo', 'contatado', 'fechado', 'ignorado'].map((s) => (
-                          <option key={s} value={s} className="bg-zinc-900">{s}</option>
+                        {statusOptions.map((option) => (
+                          <option key={option.value} value={option.value} className="bg-black">
+                            {option.label}
+                          </option>
                         ))}
                       </select>
-                      <Badge status={l._status} />
+                      <Badge status={lead.status} />
                     </td>
+
                     <td className="px-3 py-2.5">
                       <button
-                        onClick={() => onDetail(l._id)}
-                        className="font-medium text-white hover:text-nexus-accent transition text-left truncate max-w-[200px] block"
-                        title={l.nome_empresa}
+                        type="button"
+                        onClick={() => onDetail(lead.id)}
+                        className="max-w-[240px] truncate text-left font-medium text-white transition hover:text-[#cccccc]"
+                        title={lead.empresa}
                       >
-                        {truncate(l.nome_empresa || '—', 35)}
+                        {truncate(lead.empresa || '-', 42)}
                       </button>
+                      <p className="mt-1 truncate text-[11px] text-[#555555]">{lead.nicho || '-'}</p>
                     </td>
-                    <td className="px-3 py-2.5 whitespace-nowrap">
+
+                    <td className="px-3 py-2.5">
                       {tel ? (
-                        <span className="flex items-center gap-1.5">
-                          <a href={`tel:${cleanTel}`} className="text-zinc-300 hover:text-white transition flex items-center gap-1">
-                            <Phone className="w-3 h-3 text-zinc-500" />
-                            {tel}
-                          </a>
-                          {waUrl && (
-                            <a href={waUrl} target="_blank" rel="noreferrer" className="text-emerald-500 hover:text-emerald-400" title="WhatsApp">
-                              <MessageCircle className="w-3.5 h-3.5" />
-                            </a>
-                          )}
-                        </span>
-                      ) : <span className="text-zinc-700">—</span>}
-                    </td>
-                    <td className="px-3 py-2.5">
-                      {l.email ? (
-                        <a href={`mailto:${l.email}`} className="text-zinc-400 hover:text-white transition flex items-center gap-1 text-xs">
-                          <Mail className="w-3 h-3" />{truncate(l.email, 25)}
+                        <a href={`tel:${cleanTel}`} className="inline-flex items-center gap-1.5 text-[#888888] transition hover:text-white">
+                          <Phone className="h-3 w-3 text-[#555555]" />
+                          {tel}
                         </a>
-                      ) : <span className="text-zinc-700">—</span>}
+                      ) : (
+                        <span className="text-[#333333]">-</span>
+                      )}
                     </td>
+
                     <td className="px-3 py-2.5">
-                      {l.site ? (
-                        <a href={l.site} target="_blank" rel="noreferrer" className="text-nexus-accent hover:text-blue-400 transition flex items-center gap-1 text-xs">
-                          <Globe className="w-3 h-3" />{truncate(siteHost, 20)}
+                      {lead.email ? (
+                        <a href={`mailto:${lead.email}`} className="inline-flex items-center gap-1 text-[12px] text-[#888888] transition hover:text-white">
+                          <Mail className="h-3 w-3" />
+                          {truncate(lead.email, 28)}
                         </a>
-                      ) : <span className="text-zinc-700">—</span>}
+                      ) : (
+                        <span className="text-[#333333]">-</span>
+                      )}
                     </td>
-                    <td className="px-3 py-2.5 text-xs text-zinc-500 truncate max-w-[120px]" title={l.cidade}>{l.cidade || '—'}</td>
+
+                    <td className="max-w-[140px] truncate px-3 py-2.5 text-[12px] text-[#888888]" title={lead.cidade || ''}>
+                      {lead.cidade || '-'}
+                      <div className="text-[10px] text-[#444444]">{lead.pais || '-'}</div>
+                    </td>
+
                     <td className="px-3 py-2.5">
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.04] text-zinc-500">{l.pais || ''}</span>
+                      <input
+                        type="number"
+                        min={0}
+                        defaultValue={lead.ticket_estimado || 0}
+                        onBlur={(e) => onPatch(lead.id, { ticket_estimado: Number(e.target.value) || 0 })}
+                        className="w-28 rounded border border-white/[0.08] bg-black px-2 py-1 text-[12px] text-[#cccccc]"
+                      />
+                      <p className="mt-1 text-[10px] text-[#555555]">{formatCurrency(lead.ticket_estimado || 0)}</p>
                     </td>
-                    <td className="px-3 py-2.5 text-[11px] text-zinc-600 truncate max-w-[120px]" title={l.observacoes}>{truncate(l.observacoes || '', 20)}</td>
+
+                    <td className="px-3 py-2.5">
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        defaultValue={lead.chance_fechamento || 0}
+                        onBlur={(e) => onPatch(lead.id, { chance_fechamento: Number(e.target.value) || 0 })}
+                        className="w-20 rounded border border-white/[0.08] bg-black px-2 py-1 text-[12px] text-[#cccccc]"
+                      />
+                      <span className="ml-1 text-[12px] text-[#555555]">%</span>
+                    </td>
+
+                    <td className="px-3 py-2.5">
+                      <input
+                        type="datetime-local"
+                        defaultValue={toDateTimeLocal(lead.proximo_follow_up)}
+                        onBlur={(e) => onPatch(lead.id, { proximo_follow_up: e.target.value || null })}
+                        className="w-40 rounded border border-white/[0.08] bg-black px-2 py-1 text-[12px] text-[#cccccc]"
+                      />
+                    </td>
+
+                    <td className="px-3 py-2.5">
+                      <input
+                        type="datetime-local"
+                        defaultValue={toDateTimeLocal(lead.ultimo_contato)}
+                        onBlur={(e) => onPatch(lead.id, { ultimo_contato: e.target.value || null })}
+                        className="w-40 rounded border border-white/[0.08] bg-black px-2 py-1 text-[12px] text-[#cccccc]"
+                      />
+                    </td>
+
+                    <td className="px-3 py-2.5">
+                      <textarea
+                        defaultValue={lead.observacoes || ''}
+                        onBlur={(e) => onPatch(lead.id, { observacoes: e.target.value })}
+                        className="h-14 w-52 resize-none rounded border border-white/[0.08] bg-black px-2 py-1 text-[12px] text-[#cccccc]"
+                      />
+                    </td>
+
                     <td className="px-3 py-2.5">
                       <button
-                        onClick={() => { if (confirm('Excluir este lead?')) onDelete(l._id) }}
-                        className="text-zinc-700 hover:text-red-400 opacity-0 group-hover:opacity-100 transition"
+                        type="button"
+                        onClick={() => {
+                          if (window.confirm('Excluir este lead?')) onDelete(lead.id)
+                        }}
+                        className="text-[#333333] opacity-0 transition group-hover:opacity-100 hover:text-nexus-red"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </td>
                   </tr>
@@ -178,4 +241,12 @@ export default function LeadsTable({
       </div>
     </div>
   )
+}
+
+function toDateTimeLocal(value?: string | null): string {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }

@@ -15,6 +15,7 @@ from google_maps_scraper import GoogleMapsScraper
 from natural_parser import parse_natural_query
 from procura_servico import ProcuraServicoScraper
 from proxy_manager import ProxyManager
+from runtime_paths import resolve_db_path
 from utils import (
     COLUMNS,
     build_output_stats,
@@ -27,7 +28,8 @@ from website_enricher import WebsiteEnricher
 
 
 console = Console()
-PAISES_TODOS = ["Brasil", "Portugal", "Australia"]
+PAISES_TODOS = ["Brasil", "Portugal", "Estados Unidos", "Canadá", "Austrália"]
+PROJECT_ROOT = Path(__file__).resolve().parent
 
 
 def _parse_bool(value: str) -> bool:
@@ -86,7 +88,7 @@ def _wizard_inputs() -> list[dict]:
 
         pais = questionary.select(
             "Qual pais?",
-            choices=["Brasil", "Portugal", "Australia", "Todos"],
+            choices=["Brasil", "Portugal", "Estados Unidos", "Canadá", "Austrália", "Todos"],
         ).ask()
 
         nicho = questionary.text(
@@ -122,10 +124,25 @@ def _wizard_inputs() -> list[dict]:
 
 
 def _load_config(path: str) -> dict:
-    if not Path(path).exists():
+    target = Path(path)
+    if not target.is_absolute():
+        cwd_target = Path.cwd() / target
+        project_target = PROJECT_ROOT / target
+        if cwd_target.exists():
+            target = cwd_target
+        else:
+            target = project_target
+
+    if not target.exists():
         return {}
-    with open(path, "r", encoding="utf-8") as f:
+    with open(target, "r", encoding="utf-8") as f:
         return yaml.safe_load(f) or {}
+
+
+def _resolve_db_path(config: dict) -> str:
+    config_raw = str(config.get("database", {}).get("path", "")).strip() or None
+    db_path, _source = resolve_db_path(config_db_path=config_raw)
+    return db_path
 
 
 def _build_queries_from_config(config: dict) -> list[dict]:
@@ -218,7 +235,7 @@ async def _run_all(consultas, config, headless, slowmo_ms):
         headless=headless, slowmo_ms=slowmo_ms, proxy_manager=proxy_manager, concurrency=concurrency
     )
 
-    db_path = config.get("database", {}).get("path", "leads.db")
+    db_path = _resolve_db_path(config)
     db = Database(db_path)
 
     sem = asyncio.Semaphore(max(1, concurrency))
@@ -241,7 +258,9 @@ async def _run_all(consultas, config, headless, slowmo_ms):
 
 
 def _export_outputs(leads, config):
-    output_dir = Path(config.get("output", {}).get("dir", "."))
+    output_dir = Path(config.get("output", {}).get("dir", "output"))
+    if not output_dir.is_absolute():
+        output_dir = PROJECT_ROOT / output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
 
     base = f"leads_{date.today().isoformat()}"
@@ -312,7 +331,7 @@ def _cmd_buscar(args):
 
 def _cmd_marcar(args):
     config = _load_config(args.config)
-    db = Database(config.get("database", {}).get("path", "leads.db"))
+    db = Database(_resolve_db_path(config))
 
     if args.id:
         ok = db.mark(args.id, args.status)
@@ -329,7 +348,7 @@ def _cmd_marcar(args):
 
 def _cmd_listar(args):
     config = _load_config(getattr(args, "config", "config.yaml"))
-    db = Database(config.get("database", {}).get("path", "leads.db"))
+    db = Database(_resolve_db_path(config))
 
     leads = db.get_leads(status=args.status)
     if not leads:
@@ -362,14 +381,16 @@ def _cmd_listar(args):
 
 def _cmd_exportar(args):
     config = _load_config(args.config)
-    db = Database(config.get("database", {}).get("path", "leads.db"))
+    db = Database(_resolve_db_path(config))
 
     leads = db.get_leads(status=args.status)
     if not leads:
         console.print(f"Nenhum lead com status '{args.status}'")
         return
 
-    output_dir = Path(config.get("output", {}).get("dir", "."))
+    output_dir = Path(config.get("output", {}).get("dir", "output"))
+    if not output_dir.is_absolute():
+        output_dir = PROJECT_ROOT / output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
     path = output_dir / f"leads_{args.status}_{date.today().isoformat()}.csv"
 
@@ -379,7 +400,7 @@ def _cmd_exportar(args):
 
 def _cmd_resumo(_args):
     config = _load_config("config.yaml")
-    db = Database(config.get("database", {}).get("path", "leads.db"))
+    db = Database(_resolve_db_path(config))
 
     counts = db.count_by_status()
     total = sum(counts.values())
@@ -402,7 +423,7 @@ def _cmd_resumo(_args):
 # ======================================================================
 
 def main():
-    load_dotenv()
+    load_dotenv(dotenv_path=PROJECT_ROOT / ".env")
     args = _parse_args()
 
     console.print(Panel.fit("Leads Scraper Premium 2026", border_style="cyan"))

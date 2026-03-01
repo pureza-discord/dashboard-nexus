@@ -1,20 +1,16 @@
-import os
-from pathlib import Path
+﻿from server.core.settings import get_settings
 
-from dotenv import load_dotenv
+settings = get_settings()
 
-load_dotenv()
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-DB_PATH = str(BASE_DIR / os.getenv("DB_PATH", "leads.db"))
-FRONTEND_DIST = str(BASE_DIR / "frontend" / "dist")
-ASSETS_DIR = str(BASE_DIR / "assets")
-
-SECRET_KEY = os.getenv("DASHBOARD_SECRET", "nexus-leads-secret-change-me-in-production")
-ALGORITHM = "HS256"
-TOKEN_EXPIRE_HOURS = int(os.getenv("TOKEN_EXPIRE_HOURS", "24"))
-
-RATE_LIMIT_MAX = int(os.getenv("RATE_LIMIT_MAX", "5"))
-RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", "60"))
-
-AVERAGE_DEAL_VALUE = float(os.getenv("AVERAGE_DEAL_VALUE", "2500"))
+APP_NAME = settings.app_name
+ENVIRONMENT = settings.environment
+API_HOST = settings.api_host
+API_PORT = settings.api_port
+DATABASE_URL = settings.database_url
+REDIS_URL = settings.redis_url
+CORS_ORIGINS = settings.cors_origins
+CORS_ALLOW_CREDENTIALS = settings.cors_allow_credentials
+JWT_SECRET_KEY = settings.jwt_secret_key
+JWT_ALGORITHM = settings.jwt_algorithm
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
+SCRAPER_MODE = settings.scraper_mode

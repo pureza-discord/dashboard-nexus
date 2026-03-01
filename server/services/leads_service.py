@@ -1,11 +1,31 @@
 import json
-import sqlite3
 from datetime import datetime
 
-from server.config import DB_PATH
+from server.services.db import get_conn
 
-VALID_SORT = {"id", "status", "created_at", "updated_at"}
+VALID_SORT = {
+    "id": "id",
+    "status": "COALESCE(status, 'novo')",
+    "created_at": "created_at",
+    "updated_at": "updated_at",
+    "nome_empresa": "LOWER(COALESCE(json_extract(data_json, '$.nome_empresa'), ''))",
+    "cidade": "LOWER(COALESCE(json_extract(data_json, '$.cidade'), ''))",
+    "pais": "LOWER(COALESCE(json_extract(data_json, '$.pais'), ''))",
+}
 VALID_STATUSES = {"novo", "contatado", "fechado", "ignorado"}
+COUNTRY_ALIASES = {
+    "Brasil": ["Brasil", "Brazil"],
+    "Portugal": ["Portugal"],
+    "Estados Unidos": ["Estados Unidos", "EUA", "USA", "United States", "United States of America"],
+    "Canadá": ["Canadá", "Canada"],
+    "Austrália": ["Austrália", "Australia"],
+}
+DEFAULT_COUNTRIES = list(COUNTRY_ALIASES.keys())
+COUNTRY_LOOKUP = {
+    alias.lower(): canonical
+    for canonical, aliases in COUNTRY_ALIASES.items()
+    for alias in [canonical, *aliases]
+}
 
 
 def _parse_lead(row) -> dict:
@@ -20,10 +40,25 @@ def _parse_lead(row) -> dict:
     return data
 
 
+def _canonical_country(value: str) -> str:
+    raw = (value or "").strip()
+    if not raw:
+        return ""
+    return COUNTRY_LOOKUP.get(raw.lower(), raw)
+
+
+def _country_variants(value: str) -> list[str]:
+    canonical = _canonical_country(value)
+    return COUNTRY_ALIASES.get(canonical, [canonical])
+
+
 def get_leads(
     status: str | None = None,
     pais: str | None = None,
+    cidade: str | None = None,
     search: str | None = None,
+    created_from: str | None = None,
+    created_to: str | None = None,
     page: int = 1,
     per_page: int = 50,
     sort_by: str = "id",
@@ -34,8 +69,10 @@ def get_leads(
     if sort_dir not in ("asc", "desc"):
         sort_dir = "desc"
 
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.row_factory = sqlite3.Row
+    page = max(1, page)
+    per_page = max(1, min(per_page, 200))
+
+    with get_conn(row_factory=True) as conn:
 
         where = ["1=1"]
         params: list = []
@@ -45,23 +82,49 @@ def get_leads(
             params.append(status)
 
         if pais and pais != "todos":
-            where.append("LOWER(data_json) LIKE ?")
-            params.append(f'%"pais": "{pais}"%')
+            variants = [item.lower() for item in _country_variants(pais)]
+            placeholders = ",".join("?" for _ in variants)
+            where.append(
+                f"LOWER(COALESCE(json_extract(data_json, '$.pais'), '')) IN ({placeholders})"
+            )
+            params.extend(variants)
+
+        if cidade:
+            where.append("LOWER(COALESCE(json_extract(data_json, '$.cidade'), '')) LIKE ?")
+            params.append(f"%{cidade.lower()}%")
 
         if search:
-            where.append("LOWER(data_json) LIKE ?")
-            params.append(f"%{search.lower()}%")
+            term = f"%{search.lower()}%"
+            where.append(
+                "("
+                "LOWER(COALESCE(json_extract(data_json, '$.nome_empresa'), '')) LIKE ? OR "
+                "LOWER(COALESCE(json_extract(data_json, '$.telefone'), '')) LIKE ? OR "
+                "LOWER(COALESCE(json_extract(data_json, '$.email'), '')) LIKE ? OR "
+                "LOWER(COALESCE(json_extract(data_json, '$.cidade'), '')) LIKE ? OR "
+                "LOWER(COALESCE(json_extract(data_json, '$.site'), '')) LIKE ?"
+                ")"
+            )
+            params.extend([term, term, term, term, term])
+
+        if created_from:
+            where.append("substr(COALESCE(created_at, ''), 1, 10) >= ?")
+            params.append(created_from[:10])
+
+        if created_to:
+            where.append("substr(COALESCE(created_at, ''), 1, 10) <= ?")
+            params.append(created_to[:10])
 
         where_sql = " AND ".join(where)
+        sort_sql = VALID_SORT.get(sort_by, VALID_SORT["id"])
 
         total = conn.execute(
             f"SELECT COUNT(*) FROM leads WHERE {where_sql}", params
         ).fetchone()[0]
 
-        offset = (max(1, page) - 1) * per_page
+        offset = (page - 1) * per_page
         rows = conn.execute(
             f"SELECT id, COALESCE(status,'novo') as status, created_at, updated_at, data_json "
-            f"FROM leads WHERE {where_sql} ORDER BY {sort_by} {sort_dir} "
+            f"FROM leads WHERE {where_sql} ORDER BY {sort_sql} {sort_dir} "
             f"LIMIT ? OFFSET ?",
             params + [per_page, offset],
         ).fetchall()
@@ -78,7 +141,7 @@ def get_leads(
 
 
 def get_stats() -> dict:
-    with sqlite3.connect(DB_PATH) as conn:
+    with get_conn() as conn:
         rows = conn.execute(
             "SELECT COALESCE(status,'novo') as s, COUNT(*) FROM leads GROUP BY s"
         ).fetchall()
@@ -88,46 +151,47 @@ def get_stats() -> dict:
 
 
 def get_countries() -> list[str]:
-    with sqlite3.connect(DB_PATH) as conn:
-        rows = conn.execute("SELECT data_json FROM leads").fetchall()
-    countries: set[str] = set()
-    for r in rows:
-        try:
-            d = json.loads(r[0])
-            p = d.get("pais", "")
-            if p:
-                countries.add(p)
-        except Exception:
-            pass
-    return sorted(countries)
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT DISTINCT TRIM(COALESCE(json_extract(data_json, '$.pais'), '')) as pais "
+            "FROM leads"
+        ).fetchall()
+    countries = {_canonical_country(row[0]) for row in rows if row and row[0]}
+    countries.update(DEFAULT_COUNTRIES)
+    ordered = [name for name in DEFAULT_COUNTRIES if name in countries]
+    tail = sorted(name for name in countries if name not in DEFAULT_COUNTRIES)
+    return ordered + tail
 
 
 def mark_leads(ids: list[int], status: str) -> int:
+    if not ids or status not in VALID_STATUSES:
+        return 0
     now = datetime.utcnow().isoformat(timespec="seconds") + "Z"
-    with sqlite3.connect(DB_PATH) as conn:
-        count = 0
-        for lid in ids:
-            cur = conn.execute(
-                "UPDATE leads SET status = ?, updated_at = ? WHERE id = ?",
-                (status, now, lid),
-            )
-            count += cur.rowcount
+    placeholders = ",".join("?" for _ in ids)
+    with get_conn() as conn:
+        cur = conn.execute(
+            f"UPDATE leads SET status = ?, updated_at = ? WHERE id IN ({placeholders})",
+            [status, now, *ids],
+        )
         conn.commit()
-    return count
+    return cur.rowcount
 
 
 def delete_leads(ids: list[int]) -> int:
-    with sqlite3.connect(DB_PATH) as conn:
-        count = 0
-        for lid in ids:
-            cur = conn.execute("DELETE FROM leads WHERE id = ?", (lid,))
-            count += cur.rowcount
+    if not ids:
+        return 0
+    placeholders = ",".join("?" for _ in ids)
+    with get_conn() as conn:
+        cur = conn.execute(f"DELETE FROM leads WHERE id IN ({placeholders})", ids)
         conn.commit()
-    return count
+    return cur.rowcount
 
 
 def delete_by_status(status: str) -> int:
-    with sqlite3.connect(DB_PATH) as conn:
+    if status not in VALID_STATUSES:
+        return 0
+
+    with get_conn() as conn:
         cur = conn.execute(
             "DELETE FROM leads WHERE COALESCE(status,'novo') = ?", (status,)
         )
@@ -136,8 +200,7 @@ def delete_by_status(status: str) -> int:
 
 
 def get_lead_detail(lead_id: int) -> dict | None:
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.row_factory = sqlite3.Row
+    with get_conn(row_factory=True) as conn:
         row = conn.execute(
             "SELECT id, COALESCE(status,'novo') as status, created_at, updated_at, data_json "
             "FROM leads WHERE id = ?",

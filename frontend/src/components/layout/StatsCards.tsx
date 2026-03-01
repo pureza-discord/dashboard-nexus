@@ -1,33 +1,54 @@
-import { Users, UserPlus, PhoneCall, Trophy } from 'lucide-react'
-
 interface Props {
   stats: Record<string, number>
+  leadsThisMonth: number
   onFilter: (status: string) => void
 }
 
 const cards = [
-  { key: 'total', label: 'Total', icon: Users, color: 'text-zinc-300', bg: 'from-zinc-500/10' },
-  { key: 'novo', label: 'Novos', icon: UserPlus, color: 'text-emerald-400', bg: 'from-emerald-500/10' },
-  { key: 'contatado', label: 'Contatados', icon: PhoneCall, color: 'text-amber-400', bg: 'from-amber-500/10' },
-  { key: 'fechado', label: 'Fechados', icon: Trophy, color: 'text-blue-400', bg: 'from-blue-500/10' },
+  { key: '_month', label: 'Leads este mês', valueKey: 'month' },
+  { key: 'novos', label: 'Novos', valueKey: 'novos' },
+  { key: 'contatados', label: 'Contatados', valueKey: 'contatados' },
+  { key: 'fechados', label: 'Fechados', valueKey: 'fechados', positive: true },
+  { key: 'perdidos', label: 'Perdidos', valueKey: 'perdidos', negative: true },
 ]
 
-export default function StatsCards({ stats, onFilter }: Props) {
+export default function StatsCards({ stats, leadsThisMonth, onFilter }: Props) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      {cards.map(({ key, label, icon: Icon, color, bg }) => (
-        <button
-          key={key}
-          onClick={() => onFilter(key === 'total' ? 'todos' : key)}
-          className={`bg-gradient-to-br ${bg} to-transparent bg-nexus-card border border-white/[0.06] rounded-xl p-5 text-left hover:border-white/[0.12] transition-all group`}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">{label}</span>
-            <Icon className={`w-4 h-4 ${color} opacity-60 group-hover:opacity-100 transition`} />
-          </div>
-          <p className={`text-3xl font-bold ${color}`}>{stats[key] ?? 0}</p>
-        </button>
-      ))}
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+      {cards.map(({ key, label, valueKey, positive, negative }) => {
+        const value = valueKey === 'month' ? leadsThisMonth : (stats[valueKey] ?? 0)
+        const isClickable = key !== '_month'
+
+        return (
+          <button
+            key={key}
+            type="button"
+            disabled={!isClickable}
+            onClick={() => {
+              if (isClickable) onFilter(key)
+            }}
+            className={`group rounded-xl border border-white/[0.06] bg-[#0a0a0a] p-5 text-left transition-colors ${
+              isClickable ? 'cursor-pointer hover:border-white/[0.12]' : 'cursor-default'
+            }`}
+          >
+            <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#666666]">
+              {label}
+            </p>
+            <p
+              className={`mt-3 text-3xl font-semibold tracking-tight ${
+                positive
+                  ? 'text-nexus-green'
+                  : negative
+                    ? 'text-nexus-red'
+                    : 'text-white'
+              }`}
+            >
+              {value}
+            </p>
+          </button>
+        )
+      })}
     </div>
   )
 }
+

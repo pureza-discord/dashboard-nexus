@@ -1,79 +1,96 @@
-import { X, Phone, Mail, Globe, MapPin, MessageCircle, Instagram, Linkedin, Star } from 'lucide-react'
+import { CalendarClock, CircleDollarSign, Globe, Mail, MapPin, MessageCircle, Phone, Percent, User, X } from 'lucide-react'
 import Badge from '../ui/Badge'
-import { formatPhone, formatDate } from '../../utils/format'
+import { formatCurrency, formatDate, formatPhone } from '../../utils/format'
 
 interface Props {
-  lead: Record<string, any> | null
+  lead: Record<string, unknown> | null
   onClose: () => void
 }
 
-function Row({ icon: Icon, label, value, href }: { icon: any; label: string; value: string; href?: string }) {
+function Row({
+  icon: Icon,
+  label,
+  value,
+  href,
+}: {
+  icon: React.ComponentType<{ className?: string }>
+  label: string
+  value: string
+  href?: string
+}) {
   if (!value) return null
+
   return (
-    <div className="flex items-start gap-3 py-2.5 border-b border-white/[0.04]">
-      <Icon className="w-4 h-4 text-zinc-500 mt-0.5 flex-shrink-0" />
+    <div className="flex items-start gap-3 border-b border-white/[0.04] py-3">
+      <Icon className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#444444]" />
       <div className="min-w-0">
-        <p className="text-[11px] text-zinc-500 uppercase tracking-wider">{label}</p>
+        <p className="text-[11px] font-medium uppercase tracking-[0.1em] text-[#555555]">{label}</p>
         {href ? (
-          <a href={href} target="_blank" rel="noreferrer" className="text-sm text-nexus-accent hover:text-blue-400 transition break-all">
+          <a href={href} target="_blank" rel="noreferrer" className="break-all text-[13px] text-white transition hover:text-[#cccccc]">
             {value}
           </a>
         ) : (
-          <p className="text-sm text-zinc-200 break-all">{value}</p>
+          <p className="break-all text-[13px] text-white">{value}</p>
         )}
       </div>
     </div>
   )
 }
 
+function asText(value: unknown): string {
+  if (value == null) return ''
+  return String(value)
+}
+
 export default function LeadDetailModal({ lead, onClose }: Props) {
   if (!lead) return null
-  const tel = lead.telefone || ''
-  const cleanTel = formatPhone(tel)
+
+  const phone = asText(lead.telefone)
+  const cleanPhone = formatPhone(phone)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
       <div
-        className="relative bg-nexus-card border border-white/[0.08] rounded-2xl shadow-2xl shadow-black/40 w-full max-w-lg max-h-[85vh] overflow-y-auto animate-[fadeIn_0.2s_ease]"
+        className="relative max-h-[88vh] w-full max-w-lg overflow-y-auto rounded-xl border border-white/[0.06] bg-[#0a0a0a] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-5 border-b border-white/[0.06]">
+        <div className="flex items-start justify-between border-b border-white/[0.06] p-6">
           <div>
-            <h3 className="text-lg font-bold text-white">{lead.nome_empresa || 'Lead'}</h3>
-            <div className="flex items-center gap-2 mt-1">
-              <Badge status={lead._status} />
-              <span className="text-xs text-zinc-600">{formatDate(lead._created)}</span>
+            <h3 className="text-lg font-semibold text-white">{asText(lead.empresa) || 'Lead'}</h3>
+            <div className="mt-2 flex items-center gap-2">
+              <Badge status={asText(lead.status) || 'novos'} />
+              <span className="text-[12px] text-[#555555]">{formatDate(asText(lead.created_at))}</span>
             </div>
           </div>
-          <button onClick={onClose} className="text-zinc-500 hover:text-white transition p-1">
-            <X className="w-5 h-5" />
+          <button type="button" onClick={onClose} className="rounded-md p-1 text-[#555555] transition hover:text-white">
+            <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="p-5 space-y-0">
-          <Row icon={MapPin} label="Endereço" value={lead.endereco} />
-          <Row icon={MapPin} label="Cidade" value={lead.cidade} />
-          <Row icon={Phone} label="Telefone" value={tel} href={cleanTel ? `tel:${cleanTel}` : undefined} />
-          {cleanTel && <Row icon={MessageCircle} label="WhatsApp" value={tel} href={`https://wa.me/${cleanTel.replace('+', '')}`} />}
-          <Row icon={Mail} label="Email" value={lead.email} href={lead.email ? `mailto:${lead.email}` : undefined} />
-          <Row icon={Globe} label="Site" value={lead.site} href={lead.site} />
-          <Row icon={Instagram} label="Instagram" value={lead.instagram} href={lead.instagram} />
-          <Row icon={Linkedin} label="LinkedIn" value={lead.linkedin} href={lead.linkedin} />
-          <Row icon={Star} label="Rating" value={lead.rating} />
-          <Row icon={Star} label="Reviews" value={lead.reviews_count} />
-          <Row icon={Globe} label="País" value={lead.pais} />
-          <Row icon={Globe} label="Nicho" value={lead.nicho} />
-          {lead.coordinates && <Row icon={MapPin} label="Coordenadas" value={lead.coordinates} />}
-          {lead.fonte_link && <Row icon={Globe} label="Fonte" value="Abrir no Google Maps" href={lead.fonte_link} />}
+        <div className="space-y-0 p-6">
+          <Row icon={User} label="Empresa" value={asText(lead.empresa)} />
+          <Row icon={MapPin} label="Cidade" value={asText(lead.cidade)} />
+          <Row icon={Globe} label="País" value={asText(lead.pais)} />
+          <Row icon={Globe} label="Nicho" value={asText(lead.nicho)} />
+          <Row icon={Phone} label="Telefone" value={phone} href={cleanPhone ? `tel:${cleanPhone}` : undefined} />
+          {cleanPhone ? <Row icon={MessageCircle} label="WhatsApp" value={phone} href={`https://wa.me/${cleanPhone.replace('+', '')}`} /> : null}
+          <Row icon={Mail} label="Email" value={asText(lead.email)} href={asText(lead.email) ? `mailto:${asText(lead.email)}` : undefined} />
+          <Row icon={Globe} label="Site" value={asText(lead.site)} href={asText(lead.site)} />
+          <Row icon={CircleDollarSign} label="Ticket estimado" value={formatCurrency(Number(lead.ticket_estimado || 0))} />
+          <Row icon={Percent} label="Chance de fechamento" value={`${Number(lead.chance_fechamento || 0)}%`} />
+          <Row icon={CalendarClock} label="Follow-up" value={formatDate(asText(lead.proximo_follow_up))} />
+          <Row icon={CalendarClock} label="Último contato" value={formatDate(asText(lead.ultimo_contato))} />
         </div>
 
-        {lead.observacoes && (
-          <div className="px-5 pb-5">
-            <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Observações</p>
-            <p className="text-xs text-zinc-400 bg-zinc-900/50 rounded-lg px-3 py-2">{lead.observacoes}</p>
+        {asText(lead.observacoes) ? (
+          <div className="px-6 pb-6">
+            <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.1em] text-[#555555]">Observações</p>
+            <p className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2.5 text-[13px] text-[#cccccc]">
+              {asText(lead.observacoes)}
+            </p>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   )

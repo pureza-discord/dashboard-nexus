@@ -11,7 +11,10 @@ router = APIRouter(prefix="/api", tags=["leads"])
 async def list_leads(
     status: str = "todos",
     pais: str = "todos",
+    cidade: str = "",
     search: str = "",
+    created_from: str = "",
+    created_to: str = "",
     page: int = 1,
     per_page: int = 50,
     sort_by: str = "id",
@@ -19,7 +22,8 @@ async def list_leads(
     _user: str = Depends(verify_token),
 ):
     result = leads_service.get_leads(
-        status=status, pais=pais, search=search,
+        status=status, pais=pais, cidade=cidade, search=search,
+        created_from=created_from, created_to=created_to,
         page=page, per_page=per_page,
         sort_by=sort_by, sort_dir=sort_dir,
     )

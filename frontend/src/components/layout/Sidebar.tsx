@@ -1,67 +1,75 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, BarChart3, LogOut } from 'lucide-react'
+import { LayoutDashboard, LogOut, Users, UserCircle } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 
+interface SidebarProps {
+  open: boolean
+  onClose: () => void
+}
+
 const links = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+  { to: '/app/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/app/leads', icon: Users, label: 'Leads' },
+  { to: '/app/conta', icon: UserCircle, label: 'Conta' },
 ]
 
-export default function Sidebar() {
-  const { user, logout } = useAuth()
+export default function Sidebar({ open, onClose }: SidebarProps) {
+  const { logout } = useAuth()
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-40 w-60 bg-nexus-sidebar border-r border-white/[0.06] flex flex-col">
-      <div className="p-5 border-b border-white/[0.06]">
-        <img
-          src="/assets/logo2.png"
-          alt="Nexus"
-          className="h-8 object-contain"
-          onError={(e) => {
-            const el = e.target as HTMLImageElement
-            el.style.display = 'none'
-            el.parentElement!.innerHTML = '<span class="text-lg font-bold text-white">Nexus</span>'
-          }}
+    <>
+      {open ? (
+        <button
+          type="button"
+          className="fixed inset-0 z-40 bg-black/80 lg:hidden"
+          onClick={onClose}
+          aria-label="Fechar menu"
         />
-      </div>
+      ) : null}
 
-      <nav className="flex-1 p-3 space-y-1">
-        {links.map(({ to, icon: Icon, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={to === '/'}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                isActive
-                  ? 'bg-nexus-accent/10 text-nexus-accent'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03]'
-              }`
-            }
-          >
-            <Icon className="w-[18px] h-[18px]" />
-            {label}
-          </NavLink>
-        ))}
-      </nav>
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-[220px] flex-col border-r border-white/[0.06] bg-[#050505] transition-transform duration-200 lg:translate-x-0 ${
+          open ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex h-16 items-center px-6">
+          <span className="text-base font-bold tracking-tight text-white">Nexus Leads Manager</span>
+        </div>
 
-      <div className="p-4 border-t border-white/[0.06]">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-7 h-7 rounded-full bg-nexus-accent/20 text-nexus-accent text-xs font-bold flex items-center justify-center flex-shrink-0">
-              {(user || 'A')[0].toUpperCase()}
-            </div>
-            <span className="text-sm text-zinc-400 truncate">{user}</span>
-          </div>
+        <nav className="flex-1 px-3 pt-2">
+          {links.map(({ to, icon: Icon, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              onClick={onClose}
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-colors ${
+                  isActive
+                    ? 'bg-white/[0.06] text-white'
+                    : 'text-[#666666] hover:text-[#999999]'
+                }`
+              }
+            >
+              <Icon className="h-[18px] w-[18px]" />
+              <span>{label}</span>
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="border-t border-white/[0.06] p-3">
           <button
-            onClick={logout}
-            className="text-zinc-500 hover:text-red-400 transition p-1"
-            title="Sair"
+            type="button"
+            onClick={() => {
+              void logout()
+            }}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium text-[#666666] transition-colors hover:text-[#999999]"
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut className="h-[18px] w-[18px]" />
+            Sair
           </button>
         </div>
-      </div>
-    </aside>
+      </aside>
+    </>
   )
 }
+

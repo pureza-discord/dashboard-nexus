@@ -1,0 +1,16 @@
+.env
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+.runtime
+node_modules
+frontend/dist
+frontend/node_modules
+*.db
+*.sqlite
+data/*.db
+debug_maps/*.png
+.env.local
+.env.*.local

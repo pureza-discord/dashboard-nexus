@@ -1,4 +1,4 @@
-import { PhoneCall, Trophy, EyeOff, Trash2 } from 'lucide-react'
+import { PhoneCall, Trash2, Trophy, XCircle } from 'lucide-react'
 
 interface Props {
   count: number
@@ -10,22 +10,37 @@ export default function BulkActions({ count, onMark, onDelete }: Props) {
   if (count === 0) return null
 
   return (
-    <div className="flex items-center gap-3 bg-nexus-accent/10 border border-nexus-accent/20 rounded-xl px-4 py-2.5 animate-[slideIn_0.2s_ease]">
-      <span className="text-sm text-nexus-accent font-medium">{count} selecionados</span>
-      <div className="h-4 w-px bg-white/10" />
-      <button onClick={() => onMark('contatado')} className="flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300 font-medium transition">
-        <PhoneCall className="w-3.5 h-3.5" /> Contatado
-      </button>
-      <button onClick={() => onMark('fechado')} className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 font-medium transition">
-        <Trophy className="w-3.5 h-3.5" /> Fechado
-      </button>
-      <button onClick={() => onMark('ignorado')} className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-300 font-medium transition">
-        <EyeOff className="w-3.5 h-3.5" /> Ignorar
-      </button>
-      <div className="h-4 w-px bg-white/10" />
-      <button onClick={onDelete} className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 font-medium transition">
-        <Trash2 className="w-3.5 h-3.5" /> Excluir
-      </button>
+    <div className="inline-flex flex-wrap items-center gap-2 rounded-lg border border-white/[0.06] bg-[#0a0a0a] px-3 py-2">
+      <span className="mr-1 text-[13px] font-medium text-white">{count} selecionados</span>
+      <ActionBtn onClick={() => onMark('contatados')} icon={PhoneCall} label="Contatado" />
+      <ActionBtn onClick={() => onMark('fechados')} icon={Trophy} label="Fechado" />
+      <ActionBtn onClick={() => onMark('perdidos')} icon={XCircle} label="Perdido" />
+      <ActionBtn onClick={onDelete} icon={Trash2} label="Excluir" danger />
     </div>
+  )
+}
+
+function ActionBtn({
+  onClick,
+  icon: Icon,
+  label,
+  danger,
+}: {
+  onClick: () => void
+  icon: React.ComponentType<{ className?: string }>
+  label: string
+  danger?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-1 rounded-md border border-white/[0.08] px-2 py-1 text-[12px] transition hover:border-white/[0.15] ${
+        danger ? 'text-nexus-red hover:text-red-400' : 'text-[#888888] hover:text-white'
+      }`}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {label}
+    </button>
   )
 }

@@ -1,26 +1,26 @@
-import { useEffect, useState } from 'react'
-import { Circle } from 'lucide-react'
+import { Menu } from 'lucide-react'
 
-export default function Header({ title }: { title: string }) {
-  const [apiOk, setApiOk] = useState(true)
+interface HeaderProps {
+  title: string
+  onOpenSidebar: () => void
+}
 
-  useEffect(() => {
-    const check = () =>
-      fetch('/api/me', { headers: { Authorization: `Bearer ${localStorage.getItem('nexus_token') || ''}` } })
-        .then((r) => setApiOk(r.ok || r.status === 401))
-        .catch(() => setApiOk(false))
-    check()
-    const id = setInterval(check, 30_000)
-    return () => clearInterval(id)
-  }, [])
-
+export default function Header({ onOpenSidebar }: HeaderProps) {
   return (
-    <header className="h-14 border-b border-white/[0.06] bg-nexus-surface/50 backdrop-blur-sm flex items-center justify-between px-6 sticky top-0 z-20">
-      <h2 className="text-base font-semibold text-white">{title}</h2>
-      <div className="flex items-center gap-2 text-xs text-zinc-500">
-        <Circle className={`w-2 h-2 fill-current ${apiOk ? 'text-emerald-400' : 'text-red-400'}`} />
-        API {apiOk ? 'Online' : 'Offline'}
+    <header className="sticky top-0 z-30 border-b border-white/[0.06] bg-black/90 backdrop-blur-sm">
+      <div className="flex h-14 items-center px-6 lg:px-10">
+        <button
+          type="button"
+          onClick={onOpenSidebar}
+          className="mr-4 inline-flex h-8 w-8 items-center justify-center rounded-md text-[#666666] transition hover:text-white lg:hidden"
+          aria-label="Abrir menu"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+
+        <span className="text-sm font-medium text-[#666666]">Nexus Leads Manager</span>
       </div>
     </header>
   )
 }
+

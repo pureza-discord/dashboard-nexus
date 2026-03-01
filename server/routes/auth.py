@@ -5,7 +5,7 @@ from server.middleware.auth import verify_token
 from server.middleware.rate_limit import check_rate_limit
 from server.models import LoginRequest, ChangePasswordRequest
 from server.services.auth_service import verify_credentials, create_token, change_password
-from server.config import TOKEN_EXPIRE_HOURS
+from server.config import TOKEN_EXPIRE_HOURS, COOKIE_DOMAIN, COOKIE_SAMESITE, COOKIE_SECURE
 
 router = APIRouter(prefix="/api", tags=["auth"])
 
@@ -18,10 +18,20 @@ async def login(req: LoginRequest, request: Request):
         raise HTTPException(401, "Credenciais invalidas")
 
     token = create_token(req.username)
-    resp = JSONResponse({"ok": True, "token": token})
+    resp = JSONResponse(
+        {
+            "ok": True,
+            "token": token,
+            "username": req.username,
+            "expires_in_hours": TOKEN_EXPIRE_HOURS,
+        }
+    )
     resp.set_cookie(
         "token", token,
-        httponly=True, samesite="lax",
+        httponly=True,
+        samesite=COOKIE_SAMESITE,
+        secure=COOKIE_SECURE,
+        domain=COOKIE_DOMAIN,
         max_age=TOKEN_EXPIRE_HOURS * 3600,
     )
     return resp
@@ -30,7 +40,7 @@ async def login(req: LoginRequest, request: Request):
 @router.post("/logout")
 async def logout():
     resp = JSONResponse({"ok": True})
-    resp.delete_cookie("token")
+    resp.delete_cookie("token", domain=COOKIE_DOMAIN)
     return resp
 
 

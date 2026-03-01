@@ -1,14 +1,13 @@
 import json
-import sqlite3
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-from server.config import DB_PATH, AVERAGE_DEAL_VALUE
+from server.config import AVERAGE_DEAL_VALUE
+from server.services.db import get_conn
 
 
 def get_analytics() -> dict:
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.row_factory = sqlite3.Row
+    with get_conn(row_factory=True) as conn:
         rows = conn.execute(
             "SELECT id, COALESCE(status,'novo') as status, created_at, data_json FROM leads"
         ).fetchall()

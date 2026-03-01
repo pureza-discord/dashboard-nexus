@@ -1,44 +1,56 @@
-import { useState, createContext, useContext, useCallback, type ReactNode } from 'react'
-import { CheckCircle, AlertCircle, X } from 'lucide-react'
+import { X } from 'lucide-react'
+import { createContext, type ReactNode, useCallback, useContext, useState } from 'react'
 
-interface ToastItem { id: number; message: string; type: 'ok' | 'error' }
+type ToastType = 'ok' | 'error'
 
-const Ctx = createContext<(msg: string, type?: 'ok' | 'error') => void>(() => {})
+interface ToastItem {
+  id: number
+  message: string
+  type: ToastType
+}
 
-let nextId = 0
+type PushToast = (message: string, type?: ToastType) => void
+
+const ToastContext = createContext<PushToast>(() => {})
+let nextId = 1
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([])
 
-  const push = useCallback((message: string, type: 'ok' | 'error' = 'ok') => {
+  const push = useCallback((message: string, type: ToastType = 'ok') => {
     const id = nextId++
     setItems((prev) => [...prev, { id, message, type }])
-    setTimeout(() => setItems((prev) => prev.filter((t) => t.id !== id)), 3500)
+    window.setTimeout(() => {
+      setItems((prev) => prev.filter((item) => item.id !== id))
+    }, 3600)
   }, [])
 
+  const dismiss = (id: number) => {
+    setItems((prev) => prev.filter((item) => item.id !== id))
+  }
+
   return (
-    <Ctx.Provider value={push}>
+    <ToastContext.Provider value={push}>
       {children}
-      <div className="fixed top-4 right-4 z-50 space-y-2 pointer-events-none">
-        {items.map((t) => (
+      <div className="pointer-events-none fixed right-4 top-4 z-[80] flex w-[min(92vw,340px)] flex-col gap-2">
+        {items.map((toast) => (
           <div
-            key={t.id}
-            className={`pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-lg shadow-xl text-sm font-medium animate-[slideIn_0.3s_ease] ${
-              t.type === 'ok'
-                ? 'bg-emerald-500/90 text-white'
-                : 'bg-red-500/90 text-white'
+            key={toast.id}
+            className={`pointer-events-auto flex items-start gap-2 rounded-lg border px-3 py-2.5 text-[13px] shadow-lg ${
+              toast.type === 'ok'
+                ? 'border-nexus-green/20 bg-nexus-green/10 text-nexus-green'
+                : 'border-nexus-red/20 bg-nexus-red/10 text-nexus-red'
             }`}
           >
-            {t.type === 'ok' ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-            {t.message}
-            <button onClick={() => setItems((p) => p.filter((x) => x.id !== t.id))} className="ml-2 opacity-70 hover:opacity-100">
-              <X className="w-3 h-3" />
+            <span className="flex-1">{toast.message}</span>
+            <button type="button" onClick={() => dismiss(toast.id)} className="mt-0.5 opacity-60 transition hover:opacity-100">
+              <X className="h-3.5 w-3.5" />
             </button>
           </div>
         ))}
       </div>
-    </Ctx.Provider>
+    </ToastContext.Provider>
   )
 }
 
-export const useToast = () => useContext(Ctx)
+export const useToast = () => useContext(ToastContext)

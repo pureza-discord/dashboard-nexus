@@ -7,10 +7,18 @@ COUNTRY_KEYWORDS = {
     "brasil": "Brasil",
     "brazil": "Brasil",
     "portugal": "Portugal",
-    "australia": "Australia",
-    "australian": "Australia",
+    "estados unidos": "Estados Unidos",
+    "eua": "Estados Unidos",
+    "usa": "Estados Unidos",
+    "united states": "Estados Unidos",
+    "united states of america": "Estados Unidos",
+    "canada": "Canadá",
+    "canadian": "Canadá",
+    "australia": "Austrália",
+    "australian": "Austrália",
     "todos": "Todos",
 }
+COUNTRY_TOKENS = {part for key in COUNTRY_KEYWORDS for part in key.split(" ")}
 
 # Siglas de estados brasileiros
 BR_STATES = {
@@ -25,6 +33,8 @@ KNOWN_CITIES = {
     "brisbane", "perth", "adelaide", "fortaleza", "curitiba",
     "brasilia", "salvador", "belo horizonte", "porto alegre",
     "manaus", "sao paulo", "rio de janeiro", "goiania",
+    "new york", "miami", "orlando", "los angeles", "san francisco",
+    "toronto", "vancouver", "montreal",
 }
 
 # Padroes que ativam o modo procura-servico
@@ -75,7 +85,16 @@ def _normalize_text(texto: str) -> str:
     return re.sub(r"\s+", " ", texto.strip().lower())
 
 
-def _detect_country(tokens: list[str]) -> Optional[str]:
+def _detect_country(texto_normalizado: str, tokens: list[str]) -> Optional[str]:
+    multi_word = sorted(
+        (k for k in COUNTRY_KEYWORDS if " " in k),
+        key=len,
+        reverse=True,
+    )
+    for key in multi_word:
+        if key in texto_normalizado:
+            return COUNTRY_KEYWORDS[key]
+
     for token in tokens:
         if token in COUNTRY_KEYWORDS:
             return COUNTRY_KEYWORDS[token]
@@ -102,7 +121,7 @@ def parse_natural_query(texto: str) -> Dict[str, Optional[str]]:
     tokens = texto_normalizado.split(" ")
 
     # Deteccao basica de pais e quantidade
-    pais = _detect_country(tokens) or "Brasil"
+    pais = _detect_country(texto_normalizado, tokens) or "Brasil"
     quantidade = _detect_count(tokens) or 50
     quantidade = max(1, min(quantidade, 500))
 
@@ -123,6 +142,7 @@ def parse_natural_query(texto: str) -> Dict[str, Optional[str]]:
         t
         for t in tokens
         if t not in COUNTRY_KEYWORDS
+        and t not in COUNTRY_TOKENS
         and t not in VERBOS_IGNORAR
         and not t.isdigit()
     ]

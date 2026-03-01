@@ -1,21 +1,25 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { type ReactNode } from 'react'
 import { useAuth } from './context/AuthContext'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
-import Analytics from './pages/Analytics'
+import Leads from './pages/Leads'
+import Account from './pages/Account'
 import DashboardLayout from './components/layout/DashboardLayout'
-import { Loader2 } from 'lucide-react'
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth()
+  const location = useLocation()
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-nexus-bg">
-        <Loader2 className="w-8 h-8 text-nexus-accent animate-spin" />
+      <div className="flex min-h-screen items-center justify-center bg-black">
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-white/60" />
       </div>
     )
   }
-  return user ? <>{children}</> : <Navigate to="/login" />
+  if (user) return <>{children}</>
+  const next = encodeURIComponent(`${location.pathname}${location.search}`)
+  return <Navigate to={`/login?next=${next}`} replace />
 }
 
 export default function App() {
@@ -23,20 +27,23 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-nexus-bg">
-        <Loader2 className="w-8 h-8 text-nexus-accent animate-spin" />
+      <div className="flex min-h-screen items-center justify-center bg-black">
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-white/60" />
       </div>
     )
   }
 
   return (
     <Routes>
-      <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
+      <Route path="/" element={<Navigate to={user ? '/app/dashboard' : '/login'} replace />} />
+      <Route path="/login" element={user ? <Navigate to="/app/dashboard" replace /> : <Login />} />
       <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/analytics" element={<Analytics />} />
+        <Route path="/app" element={<Navigate to="/app/dashboard" replace />} />
+        <Route path="/app/dashboard" element={<Dashboard />} />
+        <Route path="/app/leads" element={<Leads />} />
+        <Route path="/app/conta" element={<Account />} />
       </Route>
-      <Route path="*" element={<Navigate to="/" />} />
+      <Route path="*" element={<Navigate to={user ? '/app/dashboard' : '/login'} replace />} />
     </Routes>
   )
 }
