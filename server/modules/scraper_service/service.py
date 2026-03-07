@@ -17,7 +17,7 @@ from server.modules.scraper_service.core.query_builder import build_google_maps_
 settings = get_settings()
 logger = logging.getLogger("scraper")
 
-Source = Literal["google_maps", "workana"]
+Source = Literal["google_maps", "workana", "linkedin", "facebook"]
 
 ProgressCallback = Callable[[int, str], None]
 
@@ -65,6 +65,12 @@ def search_leads(request: ScrapeRequest, progress: ProgressCallback | None = Non
 
     if request.source == "workana":
         return _run_workana(sanitized, progress)
+
+    if request.source == "linkedin":
+        return _run_linkedin(sanitized, progress)
+
+    if request.source == "facebook":
+        return _run_facebook(sanitized, progress)
 
     # Default: google_maps
     if settings.scraper_mode == "google_maps":
@@ -272,6 +278,93 @@ def _generate_mock_leads(request: ScrapeRequest, progress: ProgressCallback | No
 
 
 # --------------------------------------------------------------------------
+# LinkedIn engine
+# --------------------------------------------------------------------------
+def _run_linkedin(request: ScrapeRequest, progress: ProgressCallback | None) -> list[dict]:
+    try:
+        return asyncio.run(_run_linkedin_async(request, progress))
+    except Exception as exc:
+        raise RuntimeError(f"LinkedIn scraping failed: {exc}") from exc
+
+
+async def _run_linkedin_async(request: ScrapeRequest, progress: ProgressCallback | None) -> list[dict]:
+    import os
+    from server.modules.scraper_service.engines.linkedin import LinkedInEngine
+
+    if progress:
+        progress(10, "Connecting to LinkedIn API")
+
+    api_key = os.getenv("LINKEDIN_API_KEY", "")
+    engine = LinkedInEngine(api_key=api_key or None)
+    query = f"{request.nicho} {request.cidade or ''} {request.pais}".strip()
+    raw_leads = await engine.search_leads(
+        query=query,
+        pais=request.pais,
+        nicho=request.nicho,
+        cidade=request.cidade,
+        limite=request.quantidade,
+    )
+
+    if not raw_leads:
+        raise RuntimeError(
+            "LinkedIn returned zero results. Ensure LINKEDIN_API_KEY is configured."
+        )
+
+    if progress:
+        progress(80, "Normalizing LinkedIn results")
+
+    normalized = normalize_leads(
+        raw_leads, nicho=request.nicho, pais=request.pais,
+        cidade=request.cidade, source="linkedin",
+    )
+    return deduplicate(normalized)
+
+
+# --------------------------------------------------------------------------
+# Facebook engine
+# --------------------------------------------------------------------------
+def _run_facebook(request: ScrapeRequest, progress: ProgressCallback | None) -> list[dict]:
+    try:
+        return asyncio.run(_run_facebook_async(request, progress))
+    except Exception as exc:
+        raise RuntimeError(f"Facebook scraping failed: {exc}") from exc
+
+
+async def _run_facebook_async(request: ScrapeRequest, progress: ProgressCallback | None) -> list[dict]:
+    import os
+    from server.modules.scraper_service.engines.facebook import FacebookEngine
+
+    if progress:
+        progress(10, "Connecting to Facebook Graph API")
+
+    app_id = os.getenv("FACEBOOK_APP_ID", "")
+    app_secret = os.getenv("FACEBOOK_APP_SECRET", "")
+    engine = FacebookEngine(app_id=app_id or None, app_secret=app_secret or None)
+    query = f"{request.nicho} {request.cidade or ''} {request.pais}".strip()
+    raw_leads = await engine.search_leads(
+        query=query,
+        pais=request.pais,
+        nicho=request.nicho,
+        cidade=request.cidade,
+        limite=request.quantidade,
+    )
+
+    if not raw_leads:
+        raise RuntimeError(
+            "Facebook returned zero results. Ensure FACEBOOK_APP_ID is configured."
+        )
+
+    if progress:
+        progress(80, "Normalizing Facebook results")
+
+    normalized = normalize_leads(
+        raw_leads, nicho=request.nicho, pais=request.pais,
+        cidade=request.cidade, source="facebook",
+    )
+    return deduplicate(normalized)
+
+
+# --------------------------------------------------------------------------
 # Market estimation (used by market intelligence service)
 # --------------------------------------------------------------------------
 def estimate_market_company_count(nicho: str, cidade: str, pais: str, sample_size: int = 120) -> int:
@@ -294,3 +387,4 @@ def estimate_market_company_count(nicho: str, cidade: str, pais: str, sample_siz
         )
     )
     return len(sampled)
+

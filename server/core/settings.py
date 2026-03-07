@@ -1,4 +1,4 @@
-﻿import os
+import os
 import secrets
 from dataclasses import dataclass
 from functools import lru_cache
@@ -144,7 +144,7 @@ def get_settings() -> Settings:
         access_token_expire_minutes=_env_int("ACCESS_TOKEN_EXPIRE_MINUTES", 60 * 24),
         cors_origins=_split_csv(os.getenv("CORS_ORIGINS"), default_origins),
         cors_allow_credentials=_env_bool("CORS_ALLOW_CREDENTIALS", True),
-        scraper_mode=os.getenv("SCRAPER_MODE", "mock").strip().lower() or "mock",
+        scraper_mode=os.getenv("SCRAPER_MODE", "google_maps").strip().lower() or "google_maps",
         openai_api_key=os.getenv("OPENAI_API_KEY", "").strip() or None,
         enable_external_data=_env_bool("ENABLE_EXTERNAL_DATA", True),
         trends_geo_default=os.getenv("TRENDS_GEO_DEFAULT", "BR").strip().upper() or "BR",
@@ -160,7 +160,7 @@ def get_settings() -> Settings:
         auto_bootstrap_admin=_env_bool("AUTO_BOOTSTRAP_ADMIN", True),
         bootstrap_admin_email=os.getenv("BOOTSTRAP_ADMIN_EMAIL", "admin@nexus.local").strip().lower() or "admin@nexus.local",
         bootstrap_admin_password=os.getenv("BOOTSTRAP_ADMIN_PASSWORD", "admin123").strip() or "admin123",
-        openai_model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini").strip() or "gpt-4.1-mini",
+        openai_model=os.getenv("OPENAI_MODEL", "gpt-4o").strip() or "gpt-4o",
         asaas_api_base_url=os.getenv("ASAAS_API_BASE_URL", "https://api.asaas.com/v3").strip()
         or "https://api.asaas.com/v3",
         asaas_api_key=os.getenv("ASAAS_API_KEY", "").strip() or None,

@@ -1,4 +1,4 @@
-﻿import enum
+import enum
 import uuid
 from datetime import date, datetime
 
@@ -36,10 +36,51 @@ def default_plan_reset_date() -> date:
     return date(year, month, 1)
 
 
+# ---------------------------------------------------------------------------
+# Enums
+# ---------------------------------------------------------------------------
+
 class PlanType(str, enum.Enum):
-    basic = "basic"
+    free = "free"
+    go = "go"
     pro = "pro"
+    plus = "plus"
+    ilimitado = "ilimitado"
+    # Legacy aliases (mapped to new tiers in billing service)
+    basic = "basic"
     enterprise = "enterprise"
+
+
+class CreditTransactionType(str, enum.Enum):
+    monthly_reset = "monthly_reset"
+    purchase = "purchase"
+    usage = "usage"
+    refund = "refund"
+    admin_adjustment = "admin_adjustment"
+
+
+class SubscriptionStatus(str, enum.Enum):
+    active = "active"
+    past_due = "past_due"
+    cancelled = "cancelled"
+    trialing = "trialing"
+
+
+class BillingCycle(str, enum.Enum):
+    monthly = "monthly"
+    annual = "annual"
+
+
+class PaymentStatus(str, enum.Enum):
+    pending = "pending"
+    paid = "paid"
+    failed = "failed"
+    refunded = "refunded"
+
+
+class PaymentMethod(str, enum.Enum):
+    pix = "pix"
+    credit_card = "credit_card"
 
 
 class LeadStatus(str, enum.Enum):
@@ -74,6 +115,10 @@ class VerificationPurpose(str, enum.Enum):
     login = "login"
 
 
+# ---------------------------------------------------------------------------
+# Models
+# ---------------------------------------------------------------------------
+
 class User(Base):
     __tablename__ = "users"
 
@@ -81,12 +126,12 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     full_name: Mapped[str | None] = mapped_column(String(180), nullable=True)
     password_hash: Mapped[str] = mapped_column(String(255))
-    plan_type: Mapped[PlanType] = mapped_column(Enum(PlanType), default=PlanType.basic)
-    leads_limit_monthly: Mapped[int] = mapped_column(Integer, default=300)
+    plan_type: Mapped[PlanType] = mapped_column(Enum(PlanType), default=PlanType.free)
+    leads_limit_monthly: Mapped[int] = mapped_column(Integer, default=150)
     leads_used_current_month: Mapped[int] = mapped_column(Integer, default=0)
-    external_queries_limit_monthly: Mapped[int] = mapped_column(Integer, default=30)
+    external_queries_limit_monthly: Mapped[int] = mapped_column(Integer, default=5)
     external_queries_used_current_month: Mapped[int] = mapped_column(Integer, default=0)
-    credits_balance: Mapped[int] = mapped_column(Integer, default=0)
+    credits_balance: Mapped[int] = mapped_column(Integer, default=150)
     plan_reset_date: Mapped[date] = mapped_column(Date, default=default_plan_reset_date)
     stripe_customer_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     stripe_subscription_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
@@ -101,6 +146,10 @@ class User(Base):
     ai_messages: Mapped[list["AIMessage"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     market_insights: Mapped[list["MarketInsight"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     verification_codes: Mapped[list["EmailVerificationCode"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    subscriptions: Mapped[list["Subscription"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    credit_transactions: Mapped[list["CreditTransaction"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
 
@@ -213,4 +262,60 @@ class EmailVerificationCode(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(), default=utcnow)
 
     user: Mapped[User] = relationship(back_populates="verification_codes")
+
+
+class Subscription(Base):
+    __tablename__ = "subscriptions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    plan_type: Mapped[PlanType] = mapped_column(Enum(PlanType), index=True)
+    status: Mapped[SubscriptionStatus] = mapped_column(
+        Enum(SubscriptionStatus), default=SubscriptionStatus.active, index=True
+    )
+    billing_cycle: Mapped[BillingCycle] = mapped_column(Enum(BillingCycle), default=BillingCycle.monthly)
+    current_period_start: Mapped[datetime] = mapped_column(DateTime(), default=utcnow)
+    current_period_end: Mapped[datetime] = mapped_column(DateTime())
+    cancel_at: Mapped[datetime | None] = mapped_column(DateTime(), nullable=True)
+    external_subscription_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(), default=utcnow, onupdate=utcnow)
+
+    user: Mapped[User] = relationship(back_populates="subscriptions")
+
+
+class CreditTransaction(Base):
+    __tablename__ = "credit_transactions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    amount: Mapped[int] = mapped_column(Integer)
+    type: Mapped[CreditTransactionType] = mapped_column(Enum(CreditTransactionType), index=True)
+    balance_after: Mapped[int] = mapped_column(Integer, default=0)
+    description: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    related_task_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("ai_tasks.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(), default=utcnow, index=True)
+
+    user: Mapped[User] = relationship(back_populates="credit_transactions")
+
+
+class PaymentIntent(Base):
+    __tablename__ = "payment_intents"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    external_payment_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    payment_method: Mapped[PaymentMethod] = mapped_column(Enum(PaymentMethod))
+    status: Mapped[PaymentStatus] = mapped_column(Enum(PaymentStatus), default=PaymentStatus.pending, index=True)
+    amount_brl: Mapped[float] = mapped_column(Numeric(12, 2))
+    description: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    metadata_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    pix_qr_code: Mapped[str | None] = mapped_column(Text, nullable=True)
+    pix_qr_code_base64: Mapped[str | None] = mapped_column(Text, nullable=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(), nullable=True)
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime(), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(), default=utcnow, onupdate=utcnow)
 

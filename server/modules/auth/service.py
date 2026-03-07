@@ -117,13 +117,13 @@ def register_user(db: Session, email: str, password: str, full_name: str | None 
             email=normalized_email,
             password_hash=hash_password(password),
             full_name=(full_name or "").strip() or None,
-            plan_type=PlanType.basic,
+            plan_type=PlanType.free,
             email_verified=False,
             is_active=False,
             is_admin=False,
-            credits_balance=0,
+            credits_balance=150,
         )
-        apply_plan_policy(user, PlanType.basic)
+        apply_plan_policy(user, PlanType.free)
         db.add(user)
         db.commit()
         db.refresh(user)
@@ -241,13 +241,13 @@ def bootstrap_admin_user(db: Session) -> None:
             email=email,
             full_name="Admin",
             password_hash=hash_password(password),
-            plan_type=PlanType.enterprise,
+            plan_type=PlanType.ilimitado,
             email_verified=True,
             is_active=True,
             is_admin=True,
             credits_balance=10_000_000,
         )
-        apply_plan_policy(admin, PlanType.enterprise)
+        apply_plan_policy(admin, PlanType.ilimitado)
         db.add(admin)
         db.commit()
         print(f"[BOOTSTRAP] Admin account created: {email}")
@@ -256,9 +256,9 @@ def bootstrap_admin_user(db: Session) -> None:
     admin.is_admin = True
     admin.email_verified = True
     admin.is_active = True
-    admin.plan_type = PlanType.enterprise
+    admin.plan_type = PlanType.ilimitado
     admin.credits_balance = max(admin.credits_balance, 10_000_000)
-    apply_plan_policy(admin, PlanType.enterprise)
+    apply_plan_policy(admin, PlanType.ilimitado)
 
     if not verify_password(password, admin.password_hash):
         admin.password_hash = hash_password(password)

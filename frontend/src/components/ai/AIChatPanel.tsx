@@ -172,26 +172,23 @@ export default function AIChatPanel({ onDataChanged }: Props) {
         addLocalMessage('assistant', 'Não foi possível carregar informações de créditos.')
         return true
       }
-      const balance = billing.credits_balance ?? user?.credits_balance ?? 0
-      const extLimit = billing.external_queries_limit_mensal
-      const extUsed = billing.external_queries_used_current_month
+      const balance = billing.available_credits ?? user?.credits_balance ?? 0
       const resetDate = billing.plan_reset_date
-      const leadsLimit = billing.leads_limit_mensal
+      const leadsLimit = billing.max_leads_per_search
       const leadsUsed = billing.leads_used_current_month
 
-      let msg = `Créditos e limites da sua conta:\n\n`
+      let msg = `Créditos e limites da sua conta (${billing.plan_display_name}):\n\n`
       msg += `Créditos disponíveis: ${balance}\n`
       if (leadsLimit !== null) {
-        msg += `Leads: ${leadsUsed}/${leadsLimit} usados este mês\n`
+        msg += `Buscas limitadas a ${leadsLimit} leads por vez\n`
       } else {
-        msg += `Leads: ${leadsUsed} usados (sem limite mensal)\n`
+        msg += `Buscas ilimitadas por vez\n`
       }
-      if (extLimit !== null) {
-        msg += `Buscas externas: ${extUsed}/${extLimit} usadas este mês\n`
-      } else {
-        msg += `Buscas externas: ${extUsed} usadas (sem limite mensal)\n`
-      }
-      if (resetDate) {
+      msg += `Leads processados este mês: ${leadsUsed}\n`
+      
+      if (billing.days_until_reset) {
+        msg += `\nRenova em: ${billing.days_until_reset} dias`
+      } else if (resetDate) {
         msg += `\nReset mensal em: ${new Date(resetDate).toLocaleDateString('pt-BR')}`
       } else {
         msg += `\nSeus créditos não expiram.`

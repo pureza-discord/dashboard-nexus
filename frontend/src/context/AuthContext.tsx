@@ -1,18 +1,17 @@
-﻿import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { api, clearToken, setToken } from '../services/api'
 
 export interface BillingSnapshot {
   plan_type: string
+  plan_display_name: string
   is_admin?: boolean
-  leads_limit_mensal: number | null
-  leads_used_current_month: number
-  available_leads?: number | string | null
-  external_queries_limit_mensal: number | null
-  external_queries_used_current_month: number
+  features: string[]
+  max_leads_per_search: number | null
+  available_credits: number
+  days_until_reset: number | null
   plan_reset_date: string | null
-  allow_csv_export: boolean
-  allow_multi_user: boolean
-  credits_balance?: number
+  leads_used_current_month: number
+  external_queries_used_current_month: number
 }
 
 export interface AuthUser {

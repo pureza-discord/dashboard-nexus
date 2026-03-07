@@ -5,18 +5,20 @@ import { api } from '../services/api'
 export default function Account() {
   const { user, logout, reloadUser } = useAuth()
 
-  const subscribe = async (planType: 'basic' | 'pro' | 'enterprise') => {
-    await api('/api/billing/subscribe', {
+  const subscribe = async (planType: 'free' | 'go' | 'pro' | 'plus' | 'ilimitado') => {
+    // Calling the admin plan change endpoint just as a mock for UI
+    await api('/api/billing/admin/plan', {
       method: 'POST',
-      body: JSON.stringify({ plan_type: planType }),
+      body: JSON.stringify({ user_id: user?.id, plan_type: planType }),
     })
     await reloadUser()
   }
 
   const buyCredits = async () => {
-    await api('/api/billing/credits/buy', {
+    // Calling the admin credit adjustment endpoint just as a mock for UI
+    await api('/api/billing/admin/credits', {
       method: 'POST',
-      body: JSON.stringify({ amount: 500 }),
+      body: JSON.stringify({ user_id: user?.id, amount: 500, description: "UI mockup purchase" }),
     })
     await reloadUser()
   }
@@ -58,19 +60,15 @@ export default function Account() {
             </p>
           </div>
           <p className="mt-3 text-lg font-semibold" style={{ color: 'var(--t-text)' }}>
-            {user?.is_admin ? 'Admin' : (user?.plan_type || 'Gratuito')}
+            {user?.billing?.is_admin ? 'Admin' : (user?.billing?.plan_display_name || 'Gratuito')}
           </p>
 
           <div className="mt-4 space-y-2 text-[13px]" style={{ color: 'var(--t-muted)' }}>
-            <p>
-              Leads no mês: {user?.billing?.leads_used_current_month ?? 0}
-              {user?.is_admin
-                ? ' / Ilimitado'
-                : user?.billing?.leads_limit_mensal
-                  ? ` / ${user.billing.leads_limit_mensal}`
-                  : ' / Ilimitado'}
-            </p>
-            <p>Créditos: {user?.credits_balance ?? 0}</p>
+            <p>Créditos disponíveis: {user?.billing?.available_credits ?? 0}</p>
+            {user?.billing?.days_until_reset ? (
+              <p>Renova em: {user.billing.days_until_reset} dias</p>
+            ) : null}
+            <p>Limite de busca: {user?.billing?.max_leads_per_search || 'Ilimitado'} leads</p>
           </div>
 
           {!user?.is_admin ? (
@@ -78,8 +76,8 @@ export default function Account() {
               <p className="text-[11px] font-medium uppercase tracking-[0.12em]" style={{ color: 'var(--t-muted5)' }}>
                 Assinatura
               </p>
-              <div className="flex gap-2">
-                {(['basic', 'pro', 'enterprise'] as const).map((plan) => (
+              <div className="flex flex-wrap gap-2">
+                {(['go', 'pro', 'plus', 'ilimitado'] as const).map((plan) => (
                   <button
                     key={plan}
                     type="button"

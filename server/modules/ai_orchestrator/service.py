@@ -10,7 +10,14 @@ from sqlalchemy.orm import Session
 from server.core.settings import get_settings
 from server.db.models import AIMessage, AITask, Lead, LeadStatus, MessageRole, TaskStatus, TaskType, User
 from server.modules.analytics.service import quick_metrics
-from server.modules.billing.service import assert_external_query_quota, assert_lead_quota
+from server.modules.billing.service import (
+    assert_external_query_quota,
+    assert_lead_quota,
+    assert_source_allowed,
+    consume_ai_message,
+    get_policy,
+    usage_payload,
+)
 from server.workers.tasks import run_market_task, run_scrape_task
 
 settings = get_settings()
@@ -20,14 +27,23 @@ BUSCAR_LEADS_TOOL = {
     "type": "function",
     "function": {
         "name": "buscar_leads",
-        "description": "Scrape real business data via Google Maps/Sources.",
+        "description": (
+            "Search for real business leads worldwide using multiple sources. "
+            "Returns actual company data (name, phone, email, website, address)."
+        ),
         "parameters": {
             "type": "object",
             "properties": {
-                "nicho": {"type": "string", "description": "Business niche/category to search"},
-                "pais": {"type": "string", "description": "Country to search in"},
-                "cidade": {"type": ["string", "null"], "description": "City to search in, or null for national scope"},
+                "nicho": {"type": "string", "description": "Business niche/category to search (e.g., 'dental clinics', 'accounting firms', 'restaurants')"},
+                "pais": {"type": "string", "description": "Country to search in (e.g., 'Brasil', 'Portugal', 'United States', 'Canada')"},
+                "cidade": {"type": ["string", "null"], "description": "City to search in, or null for national scope (e.g., 'São Paulo', 'Lisboa', 'Toronto')"},
+                "estado": {"type": ["string", "null"], "description": "State or region for targeted search (e.g., 'SP', 'nordeste', 'California'). null if not specified."},
                 "quantidade": {"type": "integer", "description": "Number of leads to fetch (1-1000)"},
+                "fonte": {
+                    "type": "string",
+                    "enum": ["google_maps", "workana", "linkedin", "facebook"],
+                    "description": "Data source to use. Default: google_maps. Use workana for freelance jobs.",
+                },
             },
             "required": ["nicho", "pais", "quantidade"],
         },
@@ -198,20 +214,43 @@ def _get_status_counts(db: Session, user: User) -> dict:
     return counts
 
 
-def _build_system_prompt(metrics: dict, prioritization: str) -> str:
+def _build_system_prompt(metrics: dict, prioritization: str, user: User | None = None) -> str:
     total = metrics.get("total", 0)
     conv_rate = metrics.get("conversion_rate", 0)
+
+    credit_context = ""
+    if user:
+        policy = get_policy(user.plan_type)
+        if policy.monthly_credits is None:
+            credit_context = f"Plan: {policy.display_name} (unlimited credits)."
+        else:
+            credit_context = (
+                f"Plan: {policy.display_name}. "
+                f"Credits: {user.credits_balance}/{policy.monthly_credits}."
+            )
+
     return (
-        "You are Nexus Scraper, a commercial intelligence AI by Nexus.\n"
-        "Tone: natural, professional, strategic. Respond in the user's language.\n"
-        "You have access to tools for lead scraping and market analysis.\n"
-        "Rules:\n"
-        "- NEVER assume the country is Brazil. Always ask or infer from the user's message.\n"
-        "- NEVER invent or simulate data. Only use real scraper output.\n"
-        "- If nicho, pais, or quantidade are missing for a search, ask the user before calling the tool.\n"
-        "- If cidade is not specified, pass null for national-level search.\n"
-        "- Be concise and strategic in responses.\n"
-        f"Context: User has {total} leads, conversion rate {conv_rate}%. {prioritization}"
+        "You are LeadAI Global, a world-class AI lead generation agent.\n"
+        "You are NOT a chatbot. You are a strategic business intelligence partner.\n\n"
+        "PERSONALITY:\n"
+        "- Proactive, strategic, and results-driven\n"
+        "- Speak naturally in the user's language (detect from their message)\n"
+        "- Suggest smart strategies, not just execute commands\n"
+        "- When delivering results, highlight actionable insights\n\n"
+        "CAPABILITIES:\n"
+        "- Search leads globally via Google Maps, Workana, LinkedIn, Facebook\n"
+        "- Market analysis with real competitive data\n"
+        "- Support any niche, any country, any language\n\n"
+        "STRICT RULES:\n"
+        "- NEVER assume country = Brazil. Always detect or ask.\n"
+        "- NEVER invent data. Only use real scraper output.\n"
+        "- If nicho, pais, or quantidade are unclear, ask before proceeding.\n"
+        "- If cidade is not specified, pass null for national-scope search.\n"
+        "- If the user mentions a region (e.g., 'nordeste', 'south'), set the estado parameter.\n"
+        "- When user asks for Workana/freelance jobs, set fonte='workana'.\n"
+        "- Be concise. No filler text. Every sentence must add value.\n\n"
+        f"USER CONTEXT: {total} leads in dashboard, {conv_rate}% conversion rate. "
+        f"{credit_context} {prioritization}"
     )
 
 
@@ -227,7 +266,7 @@ def _generate_conversational_reply(
         return "Please configure your OpenAI API key to enable AI-powered responses."
 
     history = _recent_messages_for_llm(db, user, limit=10)
-    system = _build_system_prompt(metrics, prioritization)
+    system = _build_system_prompt(metrics, prioritization, user=user)
     messages = [{"role": "system", "content": system}]
     messages.extend(history)
     messages.append({"role": "user", "content": user_message})
@@ -276,9 +315,28 @@ def handle_chat(db: Session, user: User, message: str, confirm_execution: bool) 
             "user_message": _message_to_dict(user_message),
         }
 
+    # Charge for the AI message
+    try:
+        consume_ai_message(db, user)
+    except HTTPException:
+        reply = (
+            "Seus créditos acabaram. Para continuar usando o LeadAI Global, "
+            "compre mais créditos ou faça upgrade do seu plano."
+        )
+        assistant_message = _save_message(
+            db, user=user, role=MessageRole.assistant, content=reply,
+            metadata={"intent": "credits_exhausted", "requires_confirmation": False},
+        )
+        return {
+            "intent": "credits_exhausted",
+            "requires_confirmation": False,
+            "assistant_message": _message_to_dict(assistant_message),
+            "user_message": _message_to_dict(user_message),
+        }
+
     # Build messages with history
     history = _recent_messages_for_llm(db, user)
-    system_prompt = _build_system_prompt(metrics, prioritization)
+    system_prompt = _build_system_prompt(metrics, prioritization, user=user)
     llm_messages = [{"role": "system", "content": system_prompt}]
     llm_messages.extend(history)
     llm_messages.append({"role": "user", "content": message})

@@ -1,4 +1,4 @@
-"""Strict geo-validation. No fallbacks, no assumptions."""
+"""Strict geo-validation + region/state expansion."""
 
 import logging
 
@@ -107,6 +107,84 @@ CITY_COUNTRY_MAP: dict[str, set[str]] = {
 }
 
 
+# ---------------------------------------------------------------------------
+# Region → cities expansion (Brazil)
+# ---------------------------------------------------------------------------
+
+REGION_CITIES: dict[str, list[str]] = {
+    "nordeste": ["Recife", "Salvador", "Fortaleza", "Natal", "São Luís", "João Pessoa", "Maceió", "Aracaju", "Teresina"],
+    "sudeste": ["São Paulo", "Rio de Janeiro", "Belo Horizonte", "Vitória", "Campinas", "Santos", "Niterói"],
+    "sul": ["Curitiba", "Porto Alegre", "Florianópolis", "Joinville", "Londrina", "Caxias do Sul"],
+    "norte": ["Manaus", "Belém", "Porto Velho", "Macapá", "Boa Vista", "Rio Branco", "Palmas"],
+    "centro-oeste": ["Brasília", "Goiânia", "Campo Grande", "Cuiabá"],
+}
+
+# Brazilian state abbreviation → main cities
+STATE_CITIES: dict[str, list[str]] = {
+    "sp": ["São Paulo", "Campinas", "Santos", "Ribeirão Preto", "Sorocaba", "São José dos Campos"],
+    "rj": ["Rio de Janeiro", "Niterói", "São Gonçalo", "Duque de Caxias", "Petrópolis"],
+    "mg": ["Belo Horizonte", "Uberlândia", "Contagem", "Juiz de Fora", "Betim"],
+    "rs": ["Porto Alegre", "Caxias do Sul", "Pelotas", "Canoas", "Santa Maria"],
+    "pr": ["Curitiba", "Londrina", "Maringá", "Ponta Grossa", "Cascavel"],
+    "sc": ["Florianópolis", "Joinville", "Blumenau", "Chapecó", "Criciúma"],
+    "ba": ["Salvador", "Feira de Santana", "Vitória da Conquista", "Camaçari"],
+    "pe": ["Recife", "Jaboatão dos Guararapes", "Olinda", "Caruaru"],
+    "ce": ["Fortaleza", "Caucaia", "Juazeiro do Norte", "Sobral"],
+    "go": ["Goiânia", "Aparecida de Goiânia", "Anápolis"],
+    "pa": ["Belém", "Ananindeua", "Santarém", "Marabá"],
+    "am": ["Manaus", "Parintins"],
+    "df": ["Brasília"],
+    "es": ["Vitória", "Vila Velha", "Serra", "Cariacica"],
+    "rn": ["Natal", "Mossoró", "Parnamirim"],
+    "ma": ["São Luís", "Imperatriz"],
+    "pb": ["João Pessoa", "Campina Grande"],
+    "al": ["Maceió", "Arapiraca"],
+    "se": ["Aracaju"],
+    "pi": ["Teresina"],
+    "mt": ["Cuiabá", "Várzea Grande", "Rondonópolis"],
+    "ms": ["Campo Grande", "Dourados"],
+    "to": ["Palmas"],
+    "ro": ["Porto Velho", "Ji-Paraná"],
+    "ac": ["Rio Branco"],
+    "ap": ["Macapá"],
+    "rr": ["Boa Vista"],
+}
+
+
+def expand_geo(
+    estado: str | None,
+    cidade: str | None,
+    pais: str,
+) -> list[str | None]:
+    """Expand estado/region into a list of cities.
+
+    Returns:
+        List of city names, or [None] for national scope, or [cidade] if specific.
+    """
+    if cidade:
+        return [cidade]
+
+    if estado:
+        key = estado.lower().strip()
+        # Check region names
+        if key in REGION_CITIES:
+            logger.info("[SCRAPER GEO] Expanding region '%s' → %d cities", estado, len(REGION_CITIES[key]))
+            return REGION_CITIES[key]
+        # Check state abbreviations
+        if key in STATE_CITIES:
+            logger.info("[SCRAPER GEO] Expanding state '%s' → %d cities", estado, len(STATE_CITIES[key]))
+            return STATE_CITIES[key]
+        # Treat as a single city-like string
+        return [estado]
+
+    # National scope
+    return [None]
+
+
+# ---------------------------------------------------------------------------
+# Validation
+# ---------------------------------------------------------------------------
+
 class GeoValidationError(Exception):
     """Raised when city does not belong to the specified country."""
 
@@ -156,3 +234,4 @@ def validate_geo(pais: str, cidade: str | None) -> tuple[str, str | None]:
 
     logger.debug("[SCRAPER GEO] Validated: pais=%s, cidade=%s", pais, cidade)
     return pais, cidade
+
