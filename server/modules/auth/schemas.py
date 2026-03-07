@@ -1,4 +1,4 @@
-﻿from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field
 
 
 class RegisterRequest(BaseModel):
@@ -17,6 +17,17 @@ class ChangePasswordRequest(BaseModel):
     new_password: str = Field(min_length=8, max_length=255)
 
 
+class SendVerificationRequest(BaseModel):
+    email: str = Field(min_length=5, max_length=255)
+    purpose: str = Field(default="signup", max_length=40)
+
+
+class VerifyCodeRequest(BaseModel):
+    email: str = Field(min_length=5, max_length=255)
+    code: str = Field(min_length=4, max_length=12)
+    purpose: str = Field(default="signup", max_length=40)
+
+
 class VerifyEmailCodeRequest(BaseModel):
     email: str = Field(min_length=5, max_length=255)
     code: str = Field(min_length=4, max_length=12)
@@ -24,6 +35,16 @@ class VerifyEmailCodeRequest(BaseModel):
 
 class ResendCodeRequest(BaseModel):
     email: str = Field(min_length=5, max_length=255)
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str = Field(min_length=5, max_length=255)
+
+
+class ResetPasswordRequest(BaseModel):
+    email: str = Field(min_length=5, max_length=255)
+    code: str = Field(min_length=4, max_length=12)
+    new_password: str = Field(min_length=8, max_length=255)
 
 
 class TokenPayload(BaseModel):

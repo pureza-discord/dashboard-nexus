@@ -3,7 +3,7 @@ export function SkeletonRow({ cols = 9 }: { cols?: number }) {
     <tr className="animate-pulse">
       {Array.from({ length: cols }).map((_, index) => (
         <td key={index} className="px-3 py-3">
-          <div className="h-3 rounded bg-white/[0.04]" />
+          <div className="h-3 rounded-md bg-white/[0.06]" />
         </td>
       ))}
     </tr>

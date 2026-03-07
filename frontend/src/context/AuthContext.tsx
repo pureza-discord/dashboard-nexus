@@ -1,4 +1,5 @@
-﻿import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+
 import { api, clearToken, setToken } from '../services/api'
 
 export interface BillingSnapshot {
@@ -54,12 +55,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    reloadUser()
-      .catch(() => {
-        clearToken()
-        setUser(null)
-      })
-      .finally(() => setLoading(false))
+    let cancelled = false
+
+    const bootstrap = async () => {
+      try {
+        const current = await api<AuthUser>('/api/auth/me', { skipAuthRedirect: true })
+        if (!cancelled) setUser(current)
+      } catch {
+        if (!cancelled) {
+          clearToken()
+          setUser(null)
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    void bootstrap()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const login = async (email: string, password: string) => {
@@ -68,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: JSON.stringify({ email, password }),
       skipAuthRedirect: true,
     })
+
     if (res.access_token) setToken(res.access_token)
     setUser(res.user)
   }

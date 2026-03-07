@@ -1,4 +1,4 @@
-import { X } from 'lucide-react'
+import { CheckCircle, X, XCircle } from 'lucide-react'
 import { createContext, type ReactNode, useCallback, useContext, useState } from 'react'
 
 type ToastType = 'ok' | 'error'
@@ -22,7 +22,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setItems((prev) => [...prev, { id, message, type }])
     window.setTimeout(() => {
       setItems((prev) => prev.filter((item) => item.id !== id))
-    }, 3600)
+    }, 4000)
   }, [])
 
   const dismiss = (id: number) => {
@@ -32,18 +32,23 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={push}>
       {children}
-      <div className="pointer-events-none fixed right-4 top-4 z-[80] flex w-[min(92vw,340px)] flex-col gap-2">
+      <div className="pointer-events-none fixed right-4 top-4 z-[80] flex w-[min(92vw,360px)] flex-col gap-2">
         {items.map((toast) => (
           <div
             key={toast.id}
-            className={`pointer-events-auto flex items-start gap-2 rounded-lg border px-3 py-2.5 text-[13px] shadow-lg ${
+            className={`pointer-events-auto flex items-start gap-2.5 rounded-lg border px-3.5 py-3 text-[13px] shadow-lg backdrop-blur-sm transition-all ${
               toast.type === 'ok'
-                ? 'border-nexus-green/20 bg-nexus-green/10 text-nexus-green'
-                : 'border-nexus-red/20 bg-nexus-red/10 text-nexus-red'
+                ? 'border-emerald-500/20 bg-emerald-950/80 text-emerald-300'
+                : 'border-red-500/20 bg-red-950/80 text-red-300'
             }`}
           >
-            <span className="flex-1">{toast.message}</span>
-            <button type="button" onClick={() => dismiss(toast.id)} className="mt-0.5 opacity-60 transition hover:opacity-100">
+            {toast.type === 'ok' ? (
+              <CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0 opacity-70" />
+            ) : (
+              <XCircle className="mt-0.5 h-4 w-4 flex-shrink-0 opacity-70" />
+            )}
+            <span className="flex-1 leading-snug">{toast.message}</span>
+            <button type="button" onClick={() => dismiss(toast.id)} className="mt-0.5 opacity-50 transition hover:opacity-100">
               <X className="h-3.5 w-3.5" />
             </button>
           </div>

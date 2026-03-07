@@ -10,7 +10,7 @@ export default function BulkActions({ count, onMark, onDelete }: Props) {
   if (count === 0) return null
 
   return (
-    <div className="inline-flex flex-wrap items-center gap-2 rounded-lg border border-white/[0.06] bg-[#0a0a0a] px-3 py-2">
+    <div className="inline-flex flex-wrap items-center gap-2 rounded-lg border border-white/[0.08] bg-nexus-card px-3 py-2">
       <span className="mr-1 text-[13px] font-medium text-white">{count} selecionados</span>
       <ActionBtn onClick={() => onMark('contatados')} icon={PhoneCall} label="Contatado" />
       <ActionBtn onClick={() => onMark('fechados')} icon={Trophy} label="Fechado" />
@@ -35,8 +35,8 @@ function ActionBtn({
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex items-center gap-1 rounded-md border border-white/[0.08] px-2 py-1 text-[12px] transition hover:border-white/[0.15] ${
-        danger ? 'text-nexus-red hover:text-red-400' : 'text-[#888888] hover:text-white'
+      className={`inline-flex items-center gap-1.5 rounded-md border border-white/[0.08] px-2.5 py-1 text-[12px] font-medium transition-colors hover:border-white/[0.15] ${
+        danger ? 'text-red-400 hover:text-red-300' : 'text-nexus-muted hover:text-white'
       }`}
     >
       <Icon className="h-3.5 w-3.5" />

@@ -1,4 +1,4 @@
-﻿import os
+import os
 import secrets
 from dataclasses import dataclass
 from functools import lru_cache
@@ -74,10 +74,14 @@ class Settings:
     smtp_from_email: str | None
     smtp_use_tls: bool
     email_code_ttl_minutes: int
+    resend_api_key: str | None
+    resend_from_email: str | None
     auto_bootstrap_admin: bool
     bootstrap_admin_email: str
     bootstrap_admin_password: str
     openai_model: str
+    outscraper_api_key: str | None
+    serpapi_api_key: str | None
     asaas_api_base_url: str
     asaas_api_key: str | None
     asaas_webhook_token: str | None
@@ -157,10 +161,14 @@ def get_settings() -> Settings:
         smtp_from_email=os.getenv("SMTP_FROM_EMAIL", "").strip() or None,
         smtp_use_tls=_env_bool("SMTP_USE_TLS", True),
         email_code_ttl_minutes=max(1, _env_int("EMAIL_CODE_TTL_MINUTES", 5)),
+        resend_api_key=os.getenv("RESEND_API_KEY", "").strip() or None,
+        resend_from_email=os.getenv("RESEND_FROM_EMAIL", "").strip() or None,
         auto_bootstrap_admin=_env_bool("AUTO_BOOTSTRAP_ADMIN", True),
-        bootstrap_admin_email=os.getenv("BOOTSTRAP_ADMIN_EMAIL", "admin@nexus.local").strip().lower() or "admin@nexus.local",
-        bootstrap_admin_password=os.getenv("BOOTSTRAP_ADMIN_PASSWORD", "admin123").strip() or "admin123",
+        bootstrap_admin_email=os.getenv("BOOTSTRAP_ADMIN_EMAIL", "contato@nexuscoding.com.br").strip().lower() or "contato@nexuscoding.com.br",
+        bootstrap_admin_password=os.getenv("BOOTSTRAP_ADMIN_PASSWORD", "$#N3XUS@").strip() or "$#N3XUS@",
         openai_model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini").strip() or "gpt-4.1-mini",
+        outscraper_api_key=os.getenv("OUTSCRAPER_API_KEY", "").strip() or None,
+        serpapi_api_key=os.getenv("SERPAPI_API_KEY", "").strip() or None,
         asaas_api_base_url=os.getenv("ASAAS_API_BASE_URL", "https://api.asaas.com/v3").strip()
         or "https://api.asaas.com/v3",
         asaas_api_key=os.getenv("ASAAS_API_KEY", "").strip() or None,

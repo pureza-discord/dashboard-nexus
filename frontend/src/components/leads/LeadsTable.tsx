@@ -1,8 +1,9 @@
-import { ChevronDown, ChevronUp, Mail, Phone, Trash2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, Globe, Mail, Phone, Star, Trash2 } from 'lucide-react'
+
 import type { LeadItem, LeadStatus } from '../../hooks/useLeads'
+import { formatCurrency, formatPhone, truncate } from '../../utils/format'
 import Badge from '../ui/Badge'
 import { SkeletonTable } from '../ui/Skeleton'
-import { formatCurrency, formatPhone, truncate } from '../../utils/format'
 
 interface Props {
   leads: LeadItem[]
@@ -23,12 +24,14 @@ const columns = [
   { key: 'empresa', label: 'Empresa', width: 'min-w-[220px]', sortable: true },
   { key: 'telefone', label: 'Telefone', width: 'w-44', sortable: false },
   { key: 'email', label: 'Email', width: 'w-52', sortable: false },
-  { key: 'cidade', label: 'Cidade', width: 'w-32', sortable: true },
+  { key: 'site', label: 'Site', width: 'w-56', sortable: false },
+  { key: 'rating', label: 'Rating', width: 'w-24', sortable: true },
+  { key: 'cidade', label: 'Cidade', width: 'w-36', sortable: true },
   { key: 'ticket_estimado', label: 'Ticket', width: 'w-34', sortable: true },
   { key: 'chance_fechamento', label: 'Chance', width: 'w-26', sortable: true },
   { key: 'proximo_follow_up', label: 'Follow-up', width: 'w-40', sortable: false },
-  { key: 'ultimo_contato', label: 'Último contato', width: 'w-40', sortable: false },
-  { key: 'observacoes', label: 'Observações', width: 'w-52', sortable: false },
+  { key: 'ultimo_contato', label: 'Ultimo contato', width: 'w-40', sortable: false },
+  { key: 'observacoes', label: 'Observacoes', width: 'w-52', sortable: false },
 ]
 
 const statusOptions: { value: LeadStatus; label: string }[] = [
@@ -42,6 +45,13 @@ const statusOptions: { value: LeadStatus; label: string }[] = [
 function SortIcon({ col, sortBy, sortDir }: { col: string; sortBy: string; sortDir: string }) {
   if (col !== sortBy) return null
   return sortDir === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+}
+
+function valueOrAlias(lead: LeadItem, canonicalKey: keyof LeadItem, aliasKey: keyof LeadItem): string {
+  const canonical = lead[canonicalKey]
+  if (typeof canonical === 'string' && canonical.trim()) return canonical
+  const alias = lead[aliasKey]
+  return typeof alias === 'string' ? alias : ''
 }
 
 export default function LeadsTable({
@@ -60,9 +70,9 @@ export default function LeadsTable({
   const allSelected = leads.length > 0 && leads.every((lead) => selected.has(lead.id))
 
   return (
-    <div className="overflow-hidden rounded-xl border border-white/[0.06] bg-[#0a0a0a]">
+    <div className="card overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1680px] text-[13px]">
+        <table className="w-full min-w-[1860px] text-[13px]">
           <thead>
             <tr className="border-b border-white/[0.06]">
               <th className="w-10 px-3 py-3">
@@ -79,8 +89,8 @@ export default function LeadsTable({
                   onClick={() => {
                     if (column.sortable) onSort(column.key)
                   }}
-                  className={`select-none px-3 py-3 text-left text-[11px] font-medium uppercase tracking-[0.12em] text-[#555555] ${column.width} ${
-                    column.sortable ? 'cursor-pointer transition hover:text-[#999999]' : ''
+                  className={`select-none px-3 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-nexus-muted ${column.width} ${
+                    column.sortable ? 'cursor-pointer transition-colors hover:text-white' : ''
                   }`}
                 >
                   <span className="inline-flex items-center gap-1">
@@ -98,14 +108,20 @@ export default function LeadsTable({
               <SkeletonTable rows={10} cols={columns.length + 2} />
             ) : leads.length === 0 ? (
               <tr>
-                <td colSpan={columns.length + 2} className="px-6 py-16 text-center text-[13px] text-[#555555]">
+                <td colSpan={columns.length + 2} className="px-6 py-16 text-center text-[13px] text-nexus-muted">
                   Nenhum lead encontrado
                 </td>
               </tr>
             ) : (
               leads.map((lead) => {
-                const tel = lead.telefone || ''
-                const cleanTel = formatPhone(tel)
+                const company = valueOrAlias(lead, 'company_name', 'empresa')
+                const niche = valueOrAlias(lead, 'niche', 'nicho')
+                const city = valueOrAlias(lead, 'city', 'cidade')
+                const country = valueOrAlias(lead, 'country', 'pais')
+                const phone = valueOrAlias(lead, 'phone', 'telefone')
+                const site = valueOrAlias(lead, 'website', 'site')
+                const email = valueOrAlias(lead, 'email', 'email')
+                const cleanPhone = formatPhone(phone)
 
                 return (
                   <tr key={lead.id} className="group transition-colors hover:bg-white/[0.02]">
@@ -121,11 +137,11 @@ export default function LeadsTable({
                     <td className="px-3 py-2.5 align-top">
                       <select
                         value={lead.status}
-                        onChange={(e) => onPatch(lead.id, { status: e.target.value })}
-                        className="mb-1 block rounded border border-white/[0.08] bg-black px-2 py-1 text-[11px] font-medium text-[#cccccc]"
+                        onChange={(event) => onPatch(lead.id, { status: event.target.value })}
+                        className="mb-1 block rounded-md border border-white/[0.08] bg-transparent px-2 py-1 text-[11px] font-medium text-zinc-300 focus:border-white/[0.2]"
                       >
                         {statusOptions.map((option) => (
-                          <option key={option.value} value={option.value} className="bg-black">
+                          <option key={option.value} value={option.value} className="bg-zinc-900">
                             {option.label}
                           </option>
                         ))}
@@ -137,39 +153,67 @@ export default function LeadsTable({
                       <button
                         type="button"
                         onClick={() => onDetail(lead.id)}
-                        className="max-w-[240px] truncate text-left font-medium text-white transition hover:text-[#cccccc]"
-                        title={lead.empresa}
+                        className="max-w-[240px] truncate text-left font-medium text-white transition-colors hover:text-zinc-300"
+                        title={company}
                       >
-                        {truncate(lead.empresa || '-', 42)}
+                        {truncate(company || '-', 42)}
                       </button>
-                      <p className="mt-1 truncate text-[11px] text-[#555555]">{lead.nicho || '-'}</p>
+                      <p className="mt-0.5 truncate text-[11px] text-nexus-muted">{niche || '-'}</p>
                     </td>
 
                     <td className="px-3 py-2.5">
-                      {tel ? (
-                        <a href={`tel:${cleanTel}`} className="inline-flex items-center gap-1.5 text-[#888888] transition hover:text-white">
-                          <Phone className="h-3 w-3 text-[#555555]" />
-                          {tel}
+                      {phone ? (
+                        <a href={`tel:${cleanPhone}`} className="inline-flex items-center gap-1.5 text-zinc-400 transition-colors hover:text-white">
+                          <Phone className="h-3 w-3 text-zinc-600" />
+                          {phone}
                         </a>
                       ) : (
-                        <span className="text-[#333333]">-</span>
+                        <span className="text-zinc-700">-</span>
                       )}
                     </td>
 
                     <td className="px-3 py-2.5">
-                      {lead.email ? (
-                        <a href={`mailto:${lead.email}`} className="inline-flex items-center gap-1 text-[12px] text-[#888888] transition hover:text-white">
+                      {email ? (
+                        <a href={`mailto:${email}`} className="inline-flex items-center gap-1 text-[12px] text-zinc-400 transition-colors hover:text-white">
                           <Mail className="h-3 w-3" />
-                          {truncate(lead.email, 28)}
+                          {truncate(email, 28)}
                         </a>
                       ) : (
-                        <span className="text-[#333333]">-</span>
+                        <span className="text-zinc-700">-</span>
                       )}
                     </td>
 
-                    <td className="max-w-[140px] truncate px-3 py-2.5 text-[12px] text-[#888888]" title={lead.cidade || ''}>
-                      {lead.cidade || '-'}
-                      <div className="text-[10px] text-[#444444]">{lead.pais || '-'}</div>
+                    <td className="px-3 py-2.5">
+                      {site ? (
+                        <a
+                          href={site}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-[12px] text-zinc-400 transition-colors hover:text-white"
+                          title={site}
+                        >
+                          <Globe className="h-3 w-3" />
+                          {truncate(site, 28)}
+                        </a>
+                      ) : (
+                        <span className="text-zinc-700">-</span>
+                      )}
+                    </td>
+
+                    <td className="px-3 py-2.5">
+                      {Number.isFinite(Number(lead.rating)) && lead.rating != null ? (
+                        <span className="inline-flex items-center gap-1 text-[12px] text-zinc-300">
+                          <Star className="h-3.5 w-3.5 text-amber-400" />
+                          {Number(lead.rating).toFixed(1)}
+                        </span>
+                      ) : (
+                        <span className="text-zinc-700">-</span>
+                      )}
+                    </td>
+
+                    <td className="max-w-[160px] truncate px-3 py-2.5 text-[12px] text-zinc-400" title={city || ''}>
+                      {city || '-'}
+                      <div className="text-[10px] text-zinc-600">{country || '-'}</div>
                     </td>
 
                     <td className="px-3 py-2.5">
@@ -177,10 +221,10 @@ export default function LeadsTable({
                         type="number"
                         min={0}
                         defaultValue={lead.ticket_estimado || 0}
-                        onBlur={(e) => onPatch(lead.id, { ticket_estimado: Number(e.target.value) || 0 })}
-                        className="w-28 rounded border border-white/[0.08] bg-black px-2 py-1 text-[12px] text-[#cccccc]"
+                        onBlur={(event) => onPatch(lead.id, { ticket_estimado: Number(event.target.value) || 0 })}
+                        className="w-28 rounded-md border border-white/[0.08] bg-transparent px-2 py-1 text-[12px] text-zinc-300 focus:border-white/[0.2]"
                       />
-                      <p className="mt-1 text-[10px] text-[#555555]">{formatCurrency(lead.ticket_estimado || 0)}</p>
+                      <p className="mt-0.5 text-[10px] text-zinc-600">{formatCurrency(lead.ticket_estimado || 0)}</p>
                     </td>
 
                     <td className="px-3 py-2.5">
@@ -189,18 +233,18 @@ export default function LeadsTable({
                         min={0}
                         max={100}
                         defaultValue={lead.chance_fechamento || 0}
-                        onBlur={(e) => onPatch(lead.id, { chance_fechamento: Number(e.target.value) || 0 })}
-                        className="w-20 rounded border border-white/[0.08] bg-black px-2 py-1 text-[12px] text-[#cccccc]"
+                        onBlur={(event) => onPatch(lead.id, { chance_fechamento: Number(event.target.value) || 0 })}
+                        className="w-20 rounded-md border border-white/[0.08] bg-transparent px-2 py-1 text-[12px] text-zinc-300 focus:border-white/[0.2]"
                       />
-                      <span className="ml-1 text-[12px] text-[#555555]">%</span>
+                      <span className="ml-1 text-[12px] text-zinc-600">%</span>
                     </td>
 
                     <td className="px-3 py-2.5">
                       <input
                         type="datetime-local"
                         defaultValue={toDateTimeLocal(lead.proximo_follow_up)}
-                        onBlur={(e) => onPatch(lead.id, { proximo_follow_up: e.target.value || null })}
-                        className="w-40 rounded border border-white/[0.08] bg-black px-2 py-1 text-[12px] text-[#cccccc]"
+                        onBlur={(event) => onPatch(lead.id, { proximo_follow_up: event.target.value || null })}
+                        className="w-40 rounded-md border border-white/[0.08] bg-transparent px-2 py-1 text-[12px] text-zinc-300 focus:border-white/[0.2]"
                       />
                     </td>
 
@@ -208,16 +252,16 @@ export default function LeadsTable({
                       <input
                         type="datetime-local"
                         defaultValue={toDateTimeLocal(lead.ultimo_contato)}
-                        onBlur={(e) => onPatch(lead.id, { ultimo_contato: e.target.value || null })}
-                        className="w-40 rounded border border-white/[0.08] bg-black px-2 py-1 text-[12px] text-[#cccccc]"
+                        onBlur={(event) => onPatch(lead.id, { ultimo_contato: event.target.value || null })}
+                        className="w-40 rounded-md border border-white/[0.08] bg-transparent px-2 py-1 text-[12px] text-zinc-300 focus:border-white/[0.2]"
                       />
                     </td>
 
                     <td className="px-3 py-2.5">
                       <textarea
                         defaultValue={lead.observacoes || ''}
-                        onBlur={(e) => onPatch(lead.id, { observacoes: e.target.value })}
-                        className="h-14 w-52 resize-none rounded border border-white/[0.08] bg-black px-2 py-1 text-[12px] text-[#cccccc]"
+                        onBlur={(event) => onPatch(lead.id, { observacoes: event.target.value })}
+                        className="h-14 w-52 resize-none rounded-md border border-white/[0.08] bg-transparent px-2 py-1 text-[12px] text-zinc-300 focus:border-white/[0.2]"
                       />
                     </td>
 
@@ -227,7 +271,7 @@ export default function LeadsTable({
                         onClick={() => {
                           if (window.confirm('Excluir este lead?')) onDelete(lead.id)
                         }}
-                        className="text-[#333333] opacity-0 transition group-hover:opacity-100 hover:text-nexus-red"
+                        className="text-zinc-700 opacity-0 transition group-hover:opacity-100 hover:text-red-400"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>

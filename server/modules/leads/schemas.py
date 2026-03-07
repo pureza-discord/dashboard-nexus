@@ -1,4 +1,5 @@
-﻿from datetime import datetime
+from datetime import datetime
+
 from pydantic import BaseModel, Field
 
 
@@ -18,18 +19,25 @@ class BulkStatusRequest(BaseModel):
 
 
 class LeadInput(BaseModel):
-    empresa: str = Field(min_length=1, max_length=255)
-    telefone: str | None = Field(default=None, max_length=64)
+    company_name: str | None = Field(default=None, max_length=255)
+    phone: str | None = Field(default=None, max_length=64)
     email: str | None = Field(default=None, max_length=255)
+    address: str | None = Field(default=None, max_length=512)
+    website: str | None = Field(default=None, max_length=512)
+    rating: float | None = None
+    city: str | None = Field(default=None, max_length=120)
+    country: str | None = Field(default=None, max_length=120)
+    niche: str | None = Field(default=None, max_length=180)
+    source: str | None = Field(default=None, max_length=120)
+
+    # backward-compatible aliases accepted by current UI/integrations
+    empresa: str | None = Field(default=None, max_length=255)
+    telefone: str | None = Field(default=None, max_length=64)
     site: str | None = Field(default=None, max_length=512)
     cidade: str | None = Field(default=None, max_length=120)
     pais: str | None = Field(default=None, max_length=120)
     nicho: str | None = Field(default=None, max_length=180)
     origem: str | None = Field(default=None, max_length=120)
-    observacoes: str | None = Field(default=None, max_length=4000)
-    ticket_estimado: float | None = Field(default=None, ge=0)
-    score: int | None = Field(default=None, ge=0, le=100)
-    chance_fechamento: float | None = Field(default=None, ge=0, le=100)
 
 
 class BulkInsertRequest(BaseModel):

@@ -45,7 +45,7 @@ export default function Leads() {
     if (statusParam && statusParam !== filters.status) {
       setFilter('status', statusParam)
     }
-  }, [searchParams])
+  }, [searchParams, filters.status, setFilter])
 
   useEffect(() => {
     setSearchInput(filters.search)
@@ -166,44 +166,42 @@ export default function Leads() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-white">Leads</h1>
-          <p className="mt-1 text-sm text-[#666666]">{total} leads encontrados</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-white">Leads</h1>
+          <p className="mt-1 text-[13px] text-nexus-muted">{total} leads encontrados</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => { void reload() }}
-            className="inline-flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.02] px-3.5 py-2 text-[13px] font-medium text-[#999999] transition hover:border-white/[0.15] hover:text-white"
+            className="inline-flex items-center gap-2 rounded-lg border border-white/[0.08] px-3 py-2 text-[13px] font-medium text-nexus-muted transition-colors hover:border-white/[0.15] hover:text-white"
           >
-            <RefreshCcw className={`h-4 w-4 ${loading || busyAction ? 'animate-spin' : ''}`} />
+            <RefreshCcw className={`h-3.5 w-3.5 ${loading || busyAction ? 'animate-spin' : ''}`} />
             Atualizar
           </button>
           <button
             type="button"
             onClick={() => { void exportCsv() }}
-            className="inline-flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.02] px-3.5 py-2 text-[13px] font-medium text-[#999999] transition hover:border-white/[0.15] hover:text-white"
+            className="inline-flex items-center gap-2 rounded-lg border border-white/[0.08] px-3 py-2 text-[13px] font-medium text-nexus-muted transition-colors hover:border-white/[0.15] hover:text-white"
           >
-            <Download className="h-4 w-4" />
+            <Download className="h-3.5 w-3.5" />
             CSV
           </button>
         </div>
       </div>
 
-      <div className="rounded-xl border border-white/[0.06] bg-[#0a0a0a] p-5">
-        <div className="mb-4 flex items-center justify-between">
-          <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#555555]">
-            Filtros
-          </span>
+      <div className="card p-4 md:p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <span className="text-[12px] font-medium text-nexus-muted">Filtros</span>
           <button
             type="button"
             onClick={() => {
               resetFilters()
               setSearchInput('')
             }}
-            className="text-[12px] text-[#555555] transition hover:text-white"
+            className="text-[12px] text-nexus-muted transition-colors hover:text-white"
           >
             Limpar
           </button>
@@ -220,7 +218,7 @@ export default function Leads() {
               <option value="perdidos">Perdidos</option>
             </select>
           </Field>
-          <Field label="País">
+          <Field label="Pais">
             <select value={filters.pais} onChange={(e) => setFilter('pais', e.target.value)} className="input-base">
               <option value="">Todos</option>
               {countries.map((country) => (
@@ -234,7 +232,7 @@ export default function Leads() {
           <Field label="Nicho">
             <input value={filters.nicho} onChange={(e) => setFilter('nicho', e.target.value)} className="input-base" placeholder="Nicho" />
           </Field>
-          <Field label="Por página">
+          <Field label="Por pagina">
             <select value={filters.per_page} onChange={(e) => setFilter('per_page', Number(e.target.value))} className="input-base">
               {[25, 50, 100, 200].map((size) => (
                 <option key={size} value={size}>{size}</option>
@@ -244,14 +242,14 @@ export default function Leads() {
         </div>
 
         <div className="mt-3">
-          <label className="block text-[11px] font-medium uppercase tracking-[0.12em] text-[#555555]">
-            Busca
-            <span className="mt-1.5 flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2.5">
-              <Search className="h-4 w-4 text-[#444444]" />
+          <label className="block">
+            <span className="mb-1.5 block text-[12px] font-medium text-nexus-muted">Busca</span>
+            <span className="flex items-center gap-2 rounded-lg border border-white/[0.1] bg-white/[0.04] px-3 py-2">
+              <Search className="h-4 w-4 flex-shrink-0 text-zinc-600" />
               <input
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className="w-full bg-transparent text-sm text-white placeholder-[#444444]"
+                className="w-full bg-transparent text-[13px] text-white placeholder-zinc-600 focus:outline-none"
                 placeholder="Empresa, email, telefone, cidade..."
               />
             </span>
@@ -260,7 +258,7 @@ export default function Leads() {
       </div>
 
       {error ? (
-        <div className="rounded-lg border border-nexus-red/20 bg-nexus-red/5 px-4 py-3 text-sm text-nexus-red">
+        <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-[13px] text-red-400">
           {error}
         </div>
       ) : null}
@@ -292,27 +290,27 @@ export default function Leads() {
         />
 
         {pages > 1 ? (
-          <div className="flex items-center justify-center gap-4 pt-2">
+          <div className="flex items-center justify-center gap-3 pt-2">
             <button
               type="button"
               onClick={() => setFilter('page', Math.max(1, filters.page - 1))}
               disabled={filters.page <= 1}
-              className="inline-flex items-center gap-1 rounded-lg border border-white/[0.08] px-3 py-1.5 text-[13px] text-[#888888] transition hover:border-white/[0.15] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+              className="inline-flex items-center gap-1 rounded-lg border border-white/[0.08] px-3 py-1.5 text-[13px] text-nexus-muted transition-colors hover:border-white/[0.15] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-3.5 w-3.5" />
               Anterior
             </button>
-            <span className="text-[13px] tabular-nums text-[#555555]">
+            <span className="text-[13px] tabular-nums text-nexus-muted">
               {filters.page} / {pages}
             </span>
             <button
               type="button"
               onClick={() => setFilter('page', Math.min(pages, filters.page + 1))}
               disabled={filters.page >= pages}
-              className="inline-flex items-center gap-1 rounded-lg border border-white/[0.08] px-3 py-1.5 text-[13px] text-[#888888] transition hover:border-white/[0.15] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+              className="inline-flex items-center gap-1 rounded-lg border border-white/[0.08] px-3 py-1.5 text-[13px] text-nexus-muted transition-colors hover:border-white/[0.15] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
             >
-              Próximo
-              <ChevronRight className="h-4 w-4" />
+              Proximo
+              <ChevronRight className="h-3.5 w-3.5" />
             </button>
           </div>
         ) : null}
@@ -325,9 +323,9 @@ export default function Leads() {
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <label className="block text-[11px] font-medium uppercase tracking-[0.12em] text-[#555555]">
-      {label}
-      <span className="mt-1.5 block">{children}</span>
+    <label className="block">
+      <span className="mb-1.5 block text-[12px] font-medium text-nexus-muted">{label}</span>
+      {children}
     </label>
   )
 }

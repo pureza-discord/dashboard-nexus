@@ -1,3 +1,5 @@
+import { useMemo } from 'react'
+
 interface Segment {
   label: string
   value: number
@@ -10,84 +12,90 @@ interface Props {
 }
 
 export default function DonutChart({ segments, total }: Props) {
-  if (total === 0) return null
+  const safeTotal = Math.max(total, 1)
+  const hasData = total > 0
 
   const size = 200
-  const strokeWidth = 28
+  const strokeWidth = 22
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
   const cx = size / 2
   const cy = size / 2
 
-  let accumulatedOffset = 0
-  const arcs = segments
-    .filter((s) => s.value > 0)
-    .map((segment) => {
-      const pct = segment.value / total
-      const length = pct * circumference
-      const gap = 3
-      const offset = accumulatedOffset
-      accumulatedOffset += length + gap
-      return { ...segment, pct, length, offset, gap }
-    })
+  const arcs = useMemo(() => {
+    const gap = 3
+    return segments.reduce(
+      (acc, segment) => {
+        const pct = segment.value / safeTotal
+        const length = Math.max(0, pct * circumference)
+        const nextArc = {
+          ...segment,
+          pct,
+          length,
+          offset: acc.nextOffset,
+        }
+
+        return {
+          nextOffset: acc.nextOffset + length + gap,
+          list: [...acc.list, nextArc],
+        }
+      },
+      { nextOffset: 0, list: [] as Array<Segment & { pct: number; length: number; offset: number }> }
+    ).list
+  }, [segments, safeTotal, circumference])
 
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-[#0a0a0a] p-6">
-      <h3 className="mb-6 text-sm font-medium text-[#888888]">Distribuição de leads</h3>
+    <div className="card p-5 md:p-6">
+      <h3 className="mb-5 text-[13px] font-medium text-nexus-muted">Distribuicao de leads</h3>
 
-      <div className="flex items-center justify-center gap-10">
-        <div className="relative">
+      <div className="flex flex-col items-center gap-5 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
+        <div className="relative flex-shrink-0">
           <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
             <circle
               cx={cx}
               cy={cy}
               r={radius}
               fill="none"
-              stroke="rgba(255,255,255,0.04)"
+              stroke="rgba(255,255,255,0.06)"
               strokeWidth={strokeWidth}
             />
-            {arcs.map((arc) => (
-              <circle
-                key={arc.label}
-                cx={cx}
-                cy={cy}
-                r={radius}
-                fill="none"
-                stroke={arc.color}
-                strokeWidth={strokeWidth}
-                strokeDasharray={`${arc.length} ${circumference}`}
-                strokeDashoffset={-arc.offset}
-                strokeLinecap="round"
-                style={{
-                  transform: 'rotate(-90deg)',
-                  transformOrigin: '50% 50%',
-                  opacity: 0.8,
-                  transition: 'stroke-dasharray 700ms ease',
-                }}
-              />
-            ))}
+            {arcs.map((arc) => {
+              if (!hasData || arc.length <= 0) return null
+              return (
+                <circle
+                  key={arc.label}
+                  cx={cx}
+                  cy={cy}
+                  r={radius}
+                  fill="none"
+                  stroke={arc.color}
+                  strokeWidth={strokeWidth}
+                  strokeLinecap="round"
+                  strokeDasharray={`${arc.length} ${circumference}`}
+                  strokeDashoffset={-arc.offset}
+                  style={{ transform: 'rotate(-90deg)', transformOrigin: '50% 50%' }}
+                />
+              )
+            })}
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-3xl font-semibold tracking-tight text-white">{total}</span>
-            <span className="text-[11px] text-[#666666]">total</span>
+            <span className="text-4xl font-semibold tracking-tight text-white">{total}</span>
+            <span className="text-[11px] uppercase tracking-widest text-nexus-muted">total</span>
           </div>
         </div>
 
-        <div className="space-y-3">
+        <div className="w-full max-w-[240px] space-y-3">
           {arcs.map((arc) => (
             <div key={arc.label} className="flex items-center gap-3">
-              <div
-                className="h-2.5 w-2.5 rounded-full"
-                style={{ backgroundColor: arc.color, opacity: 0.8 }}
-              />
-              <div>
-                <p className="text-[13px] text-white">
-                  {arc.value}
-                  <span className="ml-1 text-[#555555]">
-                    ({(arc.pct * 100).toFixed(0)}%)
-                  </span>
-                </p>
-                <p className="text-[11px] text-[#666666]">{arc.label}</p>
+              <div className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ backgroundColor: arc.color }} />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline justify-between gap-2">
+                  <p className="text-[12px] text-nexus-muted">{arc.label}</p>
+                  <p className="text-[13px] font-medium tabular-nums text-white">
+                    {arc.value}
+                    <span className="ml-1 text-nexus-muted">({(arc.pct * 100).toFixed(0)}%)</span>
+                  </p>
+                </div>
               </div>
             </div>
           ))}

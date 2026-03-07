@@ -6,8 +6,18 @@ export type LeadStatus = 'novos' | 'contatados' | 'proposta' | 'fechados' | 'per
 export interface LeadItem {
   id: string
   _id: string
+  lead_id?: string
   status: LeadStatus
   _status: LeadStatus
+  company_name?: string
+  phone?: string
+  address?: string
+  website?: string
+  rating?: number | null
+  city?: string
+  country?: string
+  niche?: string
+  source?: string
   empresa: string
   telefone?: string
   email?: string

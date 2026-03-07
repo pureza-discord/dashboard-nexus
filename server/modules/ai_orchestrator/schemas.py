@@ -1,13 +1,19 @@
-﻿from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field
 
 
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=4000)
+    chat_id: str | None = None
     confirm_execution: bool = False
+
+
+class CreateChatRequest(BaseModel):
+    title: str | None = Field(default=None, max_length=240)
 
 
 class TaskStatusResponse(BaseModel):
     id: str
+    chat_id: str | None = None
     task_type: str
     status: str
     progress: int
@@ -24,8 +30,8 @@ class TaskStatusResponse(BaseModel):
 
 class MessageResponse(BaseModel):
     id: str
+    chat_id: str
     role: str
     content: str
-    task_id: str | None = None
-    metadata: dict
+    tool_calls: list | dict | None = None
     created_at: str | None = None

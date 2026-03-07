@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
 
 from server.api.deps import get_current_user
@@ -7,18 +7,26 @@ from server.core.settings import get_settings
 from server.db.models import User
 from server.modules.auth.schemas import (
     ChangePasswordRequest,
+    ForgotPasswordRequest,
     LoginRequest,
     RegisterRequest,
     ResendCodeRequest,
+    ResetPasswordRequest,
+    SendVerificationRequest,
+    VerifyCodeRequest,
     VerifyEmailCodeRequest,
 )
 from server.modules.auth.service import (
     authenticate_user,
     change_password,
+    forgot_password,
     issue_token_payload,
     register_user,
     resend_signup_code,
+    reset_password,
+    send_verification_code,
     serialize_user,
+    verify_code,
     verify_signup_code,
 )
 
@@ -42,6 +50,20 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     return register_user(db, payload.email, payload.password, payload.full_name)
 
 
+@router.post("/send-verification")
+def send_verification(payload: SendVerificationRequest, db: Session = Depends(get_db)):
+    return send_verification_code(db, payload.email, payload.purpose)
+
+
+@router.post("/verify-code")
+def verify_code_endpoint(payload: VerifyCodeRequest, response: Response, db: Session = Depends(get_db)):
+    user = verify_code(db, payload.email, payload.code, payload.purpose)
+    token_payload = issue_token_payload(user)
+    _set_token_cookie(response, token_payload["access_token"])
+    return token_payload
+
+
+# Legacy aliases kept for compatibility with existing frontend.
 @router.post("/verify-email")
 def verify_email(payload: VerifyEmailCodeRequest, response: Response, db: Session = Depends(get_db)):
     user = verify_signup_code(db, payload.email, payload.code)
@@ -53,6 +75,19 @@ def verify_email(payload: VerifyEmailCodeRequest, response: Response, db: Sessio
 @router.post("/resend-verification")
 def resend_verification(payload: ResendCodeRequest, db: Session = Depends(get_db)):
     return resend_signup_code(db, payload.email)
+
+
+@router.post("/forgot-password")
+def forgot_password_endpoint(payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    return forgot_password(db, payload.email)
+
+
+@router.post("/reset-password")
+def reset_password_endpoint(payload: ResetPasswordRequest, response: Response, db: Session = Depends(get_db)):
+    user = reset_password(db, payload.email, payload.code, payload.new_password)
+    token_payload = issue_token_payload(user)
+    _set_token_cookie(response, token_payload["access_token"])
+    return token_payload
 
 
 @router.post("/login")

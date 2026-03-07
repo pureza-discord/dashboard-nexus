@@ -1,17 +1,36 @@
 @import "tailwindcss";
 
 @theme {
-  --color-nexus-bg: #000000;
-  --color-nexus-surface: #0a0a0a;
-  --color-nexus-card: #111111;
+  --color-nexus-bg: #09090b;
+  --color-nexus-surface: #0c0d10;
+  --color-nexus-card: #111318;
   --color-nexus-border: rgba(255, 255, 255, 0.08);
-  --color-nexus-sidebar: #050505;
-  --color-nexus-text: #ffffff;
-  --color-nexus-muted: #888888;
+  --color-nexus-sidebar: #0a0a0c;
+  --color-nexus-text: #fafafa;
+  --color-nexus-muted: #a1a1aa;
   --color-nexus-green: #22c55e;
-  --color-nexus-red: #dc2626;
-  --font-sans: "Inter", "Manrope", "Segoe UI", sans-serif;
-  --font-display: "Inter", "Manrope", sans-serif;
+  --color-nexus-red: #ef4444;
+  --color-nexus-blue: #3b82f6;
+  --color-nexus-amber: #f59e0b;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+:root[data-layout="light"] {
+  color-scheme: light;
+}
+
+:root[data-layout="light"] body {
+  background: #fafafa;
+  color: #18181b;
+}
+
+:root[data-layout="dracula"] body {
+  background: #121017;
+  color: #f8f8f2;
 }
 
 * {
@@ -26,20 +45,13 @@ body,
 
 body {
   margin: 0;
-  background: #000000;
-  color: #ffffff;
+  overflow-x: hidden;
+  background: var(--color-nexus-bg);
+  color: var(--color-nexus-text);
   font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-}
-
-h1,
-h2,
-h3,
-h4 {
-  font-family: var(--font-display);
-  letter-spacing: -0.03em;
-  font-weight: 600;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 a {
@@ -57,12 +69,12 @@ a {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #222222;
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #333333;
+  background: rgba(255, 255, 255, 0.18);
 }
 
 input,
@@ -74,30 +86,55 @@ button {
 
 input:focus,
 select:focus,
-textarea:focus,
-button:focus-visible {
+textarea:focus {
   outline: none;
 }
 
+button:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.4);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+::selection {
+  background: rgba(59, 130, 246, 0.35);
+}
+
+/* ---- Shared input styling ---- */
 .input-base {
   width: 100%;
-  border-radius: 0.5rem;
+  border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.03);
-  color: #e5e5e5;
-  font-size: 0.875rem;
-  padding: 0.55rem 0.75rem;
-  transition: border-color 150ms ease;
+  background: rgba(255, 255, 255, 0.04);
+  color: #e4e4e7;
+  font-size: 0.8125rem;
+  padding: 0.5rem 0.75rem;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
 }
 
 .input-base::placeholder {
-  color: #555555;
+  color: #52525b;
 }
 
 .input-base:focus {
   border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.06);
 }
 
-::selection {
-  background: rgba(255, 255, 255, 0.15);
+/* ---- Card ---- */
+.card {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--color-nexus-card);
+  transition: border-color 200ms ease;
+}
+
+.card:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+@media (max-width: 768px) {
+  .card {
+    border-radius: 10px;
+  }
 }

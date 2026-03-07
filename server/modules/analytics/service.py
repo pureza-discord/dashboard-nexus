@@ -1,10 +1,10 @@
-﻿from collections import defaultdict
+from collections import defaultdict
 from datetime import datetime
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from server.db.models import Lead, LeadStatus, User
+from server.db.models import Lead, LeadStatus, User, UserLeadHistory
 
 
 def _safe_float(value) -> float:
@@ -17,9 +17,14 @@ def get_overview(db: Session, user: User) -> dict:
     now = datetime.utcnow()
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-    leads = db.query(Lead).filter(Lead.user_id == user.id).all()
+    histories = (
+        db.query(UserLeadHistory)
+        .join(Lead, UserLeadHistory.lead_id == Lead.id)
+        .filter(UserLeadHistory.user_id == user.id)
+        .all()
+    )
 
-    total = len(leads)
+    total = len(histories)
     pipeline_counts = defaultdict(int)
     potential_revenue = 0.0
     expected_revenue = 0.0
@@ -29,30 +34,31 @@ def get_overview(db: Session, user: User) -> dict:
     by_city: dict[str, dict[str, int]] = defaultdict(lambda: {"total": 0, "closed": 0})
     revenue_by_month: dict[str, float] = defaultdict(float)
 
-    for lead in leads:
-        stage = lead.status.value
+    for history in histories:
+        lead = history.lead
+        stage = history.status.value
         pipeline_counts[stage] += 1
 
-        ticket = _safe_float(lead.ticket_estimado)
-        chance = _safe_float(lead.chance_fechamento)
+        ticket = _safe_float(history.ticket_estimado)
+        chance = _safe_float(history.chance_fechamento)
 
-        if lead.status != LeadStatus.perdidos:
+        if history.status != LeadStatus.perdidos:
             potential_revenue += ticket
         expected_revenue += ticket * (chance / 100.0)
 
-        if lead.created_at and lead.created_at >= month_start:
+        if history.created_at and history.created_at >= month_start:
             leads_this_month += 1
 
-        niche_key = (lead.nicho or "Sem nicho").strip() or "Sem nicho"
-        city_key = (lead.cidade or "Sem cidade").strip() or "Sem cidade"
+        niche_key = (lead.niche or "Sem nicho").strip() or "Sem nicho"
+        city_key = (lead.city or "Sem cidade").strip() or "Sem cidade"
 
         by_niche[niche_key]["total"] += 1
         by_city[city_key]["total"] += 1
 
-        if lead.status == LeadStatus.fechados:
+        if history.status == LeadStatus.fechados:
             by_niche[niche_key]["closed"] += 1
             by_city[city_key]["closed"] += 1
-            month_label = lead.updated_at.strftime("%Y-%m") if lead.updated_at else now.strftime("%Y-%m")
+            month_label = history.updated_at.strftime("%Y-%m") if history.updated_at else now.strftime("%Y-%m")
             revenue_by_month[month_label] += ticket
 
     closed = pipeline_counts[LeadStatus.fechados.value]
@@ -107,7 +113,6 @@ def get_overview(db: Session, user: User) -> dict:
         for month, value in sorted(revenue_by_month.items(), key=lambda item: item[0])
     ]
 
-    # Snapshot for last 6 months even when there is no closed deal.
     month_cursor = month_start
     last_six = []
     for _ in range(6):
@@ -133,16 +138,15 @@ def get_overview(db: Session, user: User) -> dict:
 
 def quick_metrics(db: Session, user: User) -> dict:
     closed_count = (
-        db.query(func.count(Lead.id))
-        .filter(Lead.user_id == user.id, Lead.status == LeadStatus.fechados)
+        db.query(func.count(UserLeadHistory.id))
+        .filter(UserLeadHistory.user_id == user.id, UserLeadHistory.status == LeadStatus.fechados)
         .scalar()
         or 0
     )
-    total_count = db.query(func.count(Lead.id)).filter(Lead.user_id == user.id).scalar() or 0
+    total_count = db.query(func.count(UserLeadHistory.id)).filter(UserLeadHistory.user_id == user.id).scalar() or 0
 
     return {
         "total": int(total_count),
         "closed": int(closed_count),
         "conversion_rate": round((closed_count / max(total_count, 1)) * 100, 2),
     }
-

@@ -1,9 +1,11 @@
+import { cn } from '../../lib/utils'
+
 const styles: Record<string, string> = {
-  novos: 'text-white bg-white/[0.08]',
-  contatados: 'text-[#999999] bg-white/[0.05]',
-  proposta: 'text-[#bbbbbb] bg-white/[0.06]',
-  fechados: 'text-nexus-green bg-nexus-green/10',
-  perdidos: 'text-nexus-red bg-nexus-red/10',
+  novos: 'text-blue-300 bg-blue-500/10 border-blue-500/20',
+  contatados: 'text-nexus-muted bg-white/[0.06] border-white/[0.08]',
+  proposta: 'text-amber-300 bg-amber-500/10 border-amber-500/20',
+  fechados: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+  perdidos: 'text-red-400 bg-red-500/10 border-red-500/20',
 }
 
 function formatStatus(status: string): string {
@@ -13,7 +15,12 @@ function formatStatus(status: string): string {
 
 export default function Badge({ status }: { status: string }) {
   return (
-    <span className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-semibold ${styles[status] || styles.novos}`}>
+    <span
+      className={cn(
+        'inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-semibold',
+        styles[status] || styles.novos,
+      )}
+    >
       {formatStatus(status)}
     </span>
   )

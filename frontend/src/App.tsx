@@ -1,23 +1,27 @@
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { type ReactNode } from 'react'
+import { type ReactNode, useEffect } from 'react'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+
 import { useAuth } from './context/AuthContext'
-import Login from './pages/Login'
+import DashboardLayout from './components/layout/DashboardLayout'
+import Account from './pages/Account'
 import Dashboard from './pages/Dashboard'
 import Leads from './pages/Leads'
-import Account from './pages/Account'
-import DashboardLayout from './components/layout/DashboardLayout'
+import Login from './pages/Login'
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth()
   const location = useLocation()
+
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-black">
+      <div className="flex min-h-screen items-center justify-center bg-nexus-bg">
         <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-white/60" />
       </div>
     )
   }
+
   if (user) return <>{children}</>
+
   const next = encodeURIComponent(`${location.pathname}${location.search}`)
   return <Navigate to={`/login?next=${next}`} replace />
 }
@@ -25,9 +29,16 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 export default function App() {
   const { user, loading } = useAuth()
 
+  useEffect(() => {
+    const saved = window.localStorage.getItem('nexus_layout')
+    if (saved) {
+      document.documentElement.setAttribute('data-layout', saved)
+    }
+  }, [])
+
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-black">
+      <div className="flex min-h-screen items-center justify-center bg-nexus-bg">
         <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-white/60" />
       </div>
     )

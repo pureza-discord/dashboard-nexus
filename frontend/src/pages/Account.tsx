@@ -22,32 +22,32 @@ export default function Account() {
   }
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-semibold tracking-tight text-white">Conta</h1>
-        <p className="mt-1 text-sm text-[#666666]">Gerencie seu plano e informações.</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-white">Conta</h1>
+        <p className="mt-1 text-[13px] text-nexus-muted">Gerencie seu plano e informações.</p>
       </div>
 
-      <div className="max-w-lg space-y-6">
-        <div className="rounded-xl border border-white/[0.06] bg-[#0a0a0a] p-6">
-          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#555555]">
+      <div className="max-w-lg space-y-5">
+        <div className="card p-5 md:p-6">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-nexus-muted">
             Email
           </p>
-          <p className="mt-2 text-base font-medium text-white">{user?.email || '-'}</p>
+          <p className="mt-2 text-[14px] font-medium text-white">{user?.email || '-'}</p>
           {user?.full_name ? (
             <>
-              <p className="mt-4 text-[11px] font-medium uppercase tracking-[0.12em] text-[#555555]">
+              <p className="mt-5 text-[11px] font-medium uppercase tracking-wider text-nexus-muted">
                 Nome
               </p>
-              <p className="mt-2 text-base font-medium text-white">{user.full_name}</p>
+              <p className="mt-2 text-[14px] font-medium text-white">{user.full_name}</p>
             </>
           ) : null}
         </div>
 
-        <div className="rounded-xl border border-white/[0.06] bg-[#0a0a0a] p-6">
+        <div className="card p-5 md:p-6">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-[#888888]" />
-            <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#555555]">
+            <Sparkles className="h-4 w-4 text-nexus-muted" />
+            <p className="text-[11px] font-medium uppercase tracking-wider text-nexus-muted">
               Plano
             </p>
           </div>
@@ -55,7 +55,7 @@ export default function Account() {
             {user?.is_admin ? 'Admin' : (user?.plan_type || 'Gratuito')}
           </p>
 
-          <div className="mt-4 space-y-2 text-[13px] text-[#888888]">
+          <div className="mt-4 space-y-1.5 text-[13px] text-zinc-400">
             <p>
               Leads no mês: {user?.billing?.leads_used_current_month ?? 0}
               {user?.is_admin
@@ -69,7 +69,7 @@ export default function Account() {
 
           {!user?.is_admin ? (
             <div className="mt-6 space-y-3">
-              <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#555555]">
+              <p className="text-[11px] font-medium uppercase tracking-wider text-nexus-muted">
                 Assinatura
               </p>
               <div className="flex gap-2">
@@ -78,7 +78,7 @@ export default function Account() {
                     key={plan}
                     type="button"
                     onClick={() => { void subscribe(plan) }}
-                    className="rounded-lg border border-white/[0.08] px-4 py-2 text-[13px] font-medium capitalize text-[#888888] transition hover:border-white/[0.2] hover:text-white"
+                    className="rounded-lg border border-white/[0.08] px-4 py-2 text-[13px] font-medium capitalize text-nexus-muted transition-colors hover:border-white/[0.15] hover:text-white"
                   >
                     {plan}
                   </button>
@@ -88,7 +88,7 @@ export default function Account() {
               <button
                 type="button"
                 onClick={() => { void buyCredits() }}
-                className="inline-flex items-center gap-2 rounded-lg border border-white/[0.08] px-4 py-2 text-[13px] font-medium text-[#888888] transition hover:border-white/[0.2] hover:text-white"
+                className="inline-flex items-center gap-2 rounded-lg border border-white/[0.08] px-4 py-2 text-[13px] font-medium text-nexus-muted transition-colors hover:border-white/[0.15] hover:text-white"
               >
                 <Coins className="h-4 w-4" />
                 Comprar +500 créditos
@@ -100,7 +100,7 @@ export default function Account() {
         <button
           type="button"
           onClick={() => { void logout() }}
-          className="inline-flex items-center gap-2 rounded-lg border border-white/[0.08] px-4 py-2.5 text-[13px] font-medium text-[#666666] transition hover:border-nexus-red/30 hover:text-nexus-red"
+          className="inline-flex items-center gap-2 rounded-lg border border-white/[0.08] px-4 py-2.5 text-[13px] font-medium text-nexus-muted transition-colors hover:border-red-500/30 hover:text-red-400"
         >
           <LogOut className="h-4 w-4" />
           Sair da conta

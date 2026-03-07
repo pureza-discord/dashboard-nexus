@@ -1,12 +1,11 @@
-﻿from contextlib import contextmanager
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import Session, sessionmaker
 
-from server.core.settings import get_settings
-from server.db.base import Base
+from server.core.settings import PROJECT_ROOT, get_settings
 
 settings = get_settings()
 
@@ -26,10 +25,37 @@ engine = create_engine(settings.database_url, **engine_kwargs)
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False, class_=Session)
 
 
-def init_db() -> None:
-    from server.db import models  # noqa: F401
+def _needs_migration() -> bool:
+    """Check if alembic migration is needed (fast, no lock contention)."""
+    try:
+        with engine.connect() as conn:
+            tables = inspect(conn).get_table_names()
+            if "alembic_version" not in tables:
+                return True
+            row = conn.execute(text("SELECT version_num FROM alembic_version LIMIT 1")).fetchone()
+            return row is None
+    except Exception:
+        return True
 
-    Base.metadata.create_all(bind=engine)
+
+def run_migrations() -> None:
+    from alembic import command
+    from alembic.config import Config
+
+    alembic_ini = Path(PROJECT_ROOT) / "alembic.ini"
+    cfg = Config(str(alembic_ini))
+    cfg.set_main_option("sqlalchemy.url", settings.database_url)
+
+    # For SQLite, dispose pooled connections to avoid file locking during migration
+    if settings.database_url.startswith("sqlite"):
+        engine.dispose()
+
+    command.upgrade(cfg, "head")
+
+
+def init_db() -> None:
+    if _needs_migration():
+        run_migrations()
 
 
 def get_db() -> Iterator[Session]:

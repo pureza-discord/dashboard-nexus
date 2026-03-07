@@ -11,8 +11,8 @@ export default function ConversionRate({ rate, label, color }: Props) {
   const data = [{ value: capped }, { value: 100 - capped }]
 
   return (
-    <div className="flex flex-col items-center rounded-2xl border border-white/10 bg-nexus-card p-5">
-      <h3 className="mb-2 text-sm font-semibold text-zinc-300">{label}</h3>
+    <div className="card flex flex-col items-center p-5 md:p-6">
+      <h3 className="mb-2 text-[13px] font-medium text-nexus-muted">{label}</h3>
       <div className="relative h-36 w-36">
         <ResponsiveContainer>
           <PieChart>
@@ -26,7 +26,7 @@ export default function ConversionRate({ rate, label, color }: Props) {
               stroke="none"
             >
               <Cell fill={color} />
-              <Cell fill="#272a36" />
+              <Cell fill="rgba(255,255,255,0.06)" />
             </Pie>
           </PieChart>
         </ResponsiveContainer>
