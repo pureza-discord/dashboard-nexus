@@ -2,6 +2,7 @@ import json
 from collections import defaultdict
 from datetime import datetime, timedelta
 
+from sqlalchemy import text
 from server.config import AVERAGE_DEAL_VALUE
 from server.services.db import get_conn
 
@@ -9,7 +10,7 @@ from server.services.db import get_conn
 def get_analytics() -> dict:
     with get_conn(row_factory=True) as conn:
         rows = conn.execute(
-            "SELECT id, COALESCE(status,'novo') as status, created_at, data_json FROM leads"
+            text("SELECT id, COALESCE(status,'novo') as status, created_at, data_json FROM leads")
         ).fetchall()
 
     status_counts: dict[str, int] = defaultdict(int)
@@ -17,16 +18,16 @@ def get_analytics() -> dict:
     daily_counts: dict[str, int] = defaultdict(int)
 
     for r in rows:
-        status_counts[r["status"]] += 1
+        status_counts[r[1]] += 1
 
         try:
-            d = json.loads(r["data_json"])
+            d = json.loads(r[3])
             pais = d.get("pais", "Desconhecido")
             country_counts[pais] += 1
         except Exception:
             pass
 
-        created = r["created_at"] or ""
+        created = r[2] or ""
         if created:
             day = created[:10]
             daily_counts[day] += 1

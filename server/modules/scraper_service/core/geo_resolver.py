@@ -169,11 +169,11 @@ def expand_geo(
         # Check region names
         if key in REGION_CITIES:
             logger.info("[SCRAPER GEO] Expanding region '%s' → %d cities", estado, len(REGION_CITIES[key]))
-            return REGION_CITIES[key]
+            return list(REGION_CITIES[key])  # type: ignore[return-value]
         # Check state abbreviations
         if key in STATE_CITIES:
             logger.info("[SCRAPER GEO] Expanding state '%s' → %d cities", estado, len(STATE_CITIES[key]))
-            return STATE_CITIES[key]
+            return list(STATE_CITIES[key])  # type: ignore[return-value]
         # Treat as a single city-like string
         return [estado]
 

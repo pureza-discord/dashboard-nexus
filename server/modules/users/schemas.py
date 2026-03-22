@@ -6,4 +6,4 @@ class UpdateProfileRequest(BaseModel):
 
 
 class UpdatePlanRequest(BaseModel):
-    plan_type: str = Field(pattern=r"^(basic|pro|enterprise)$")
+    plan_type: str = Field(pattern=r"^(free|go|pro|plus|ilimitado)$")

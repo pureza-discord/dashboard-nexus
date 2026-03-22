@@ -11,10 +11,11 @@ import logging
 from dataclasses import dataclass
 from datetime import date, datetime
 
-from fastapi import HTTPException, status
-from sqlalchemy.orm import Session
+from fastapi import HTTPException, status # type: ignore
+from sqlalchemy import func # type: ignore
+from sqlalchemy.orm import Session # type: ignore
 
-from server.db.models import (
+from server.db.models import ( # type: ignore
     CreditTransaction,
     CreditTransactionType,
     PlanType,
@@ -179,12 +180,13 @@ def _log_transaction(
     task_id: str | None = None,
 ) -> CreditTransaction:
     """Create a credit transaction log entry. Must be called inside a commit boundary."""
+    desc_str = str(description)
     tx = CreditTransaction(
         user_id=user.id,
         amount=amount,
         type=tx_type,
         balance_after=user.credits_balance,
-        description=description[:500],
+        description=desc_str[:500], # type: ignore
         related_task_id=task_id,
     )
     db.add(tx)
@@ -312,11 +314,12 @@ def assert_lead_quota(user: User, requested: int) -> None:
     if policy.monthly_credits is None:
         return
     # Check max leads per search
-    if policy.max_leads_per_search is not None and requested > policy.max_leads_per_search:
+    max_allowed = policy.max_leads_per_search
+    if max_allowed is not None and requested > max_allowed:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=(
-                f"Seu plano {policy.display_name} permite no máximo {policy.max_leads_per_search} leads por busca. "
+                f"Seu plano {policy.display_name} permite no máximo {max_allowed} leads por busca. "
                 f"Faça upgrade para buscar mais."
             ),
         )
@@ -414,6 +417,7 @@ def usage_payload(user: User) -> dict:
     monthly = policy.monthly_credits
     is_unlimited = monthly is None
 
+    available: int | str
     if user.is_admin:
         available = "ilimitado"
     elif is_unlimited:

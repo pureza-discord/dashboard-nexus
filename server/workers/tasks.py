@@ -1,14 +1,14 @@
-﻿from datetime import datetime
+from datetime import datetime
 
-from celery import states
+from celery import states # type: ignore
 
-from server.core.database import session_scope
-from server.db.models import AIMessage, AITask, MessageRole, TaskStatus, User
-from server.modules.billing.service import consume_external_queries, consume_leads
-from server.modules.leads.service import upsert_leads
-from server.modules.market_intelligence_service.service import MarketRequest, run_market_analysis
-from server.modules.scraper_service.service import ScrapeRequest, collect_leads
-from server.workers.celery_app import celery_app
+from server.core.database import session_scope # type: ignore
+from server.db.models import AIMessage, AITask, MessageRole, TaskStatus, User # type: ignore
+from server.modules.billing.service import consume_external_queries, consume_leads # type: ignore
+from server.modules.leads.service import upsert_leads # type: ignore
+from server.modules.market_intelligence_service.service import MarketRequest, run_market_analysis # type: ignore
+from server.modules.scraper_service.service import ScrapeRequest, collect_leads # type: ignore
+from server.workers.celery_app import celery_app # type: ignore
 
 
 def _now() -> datetime:
@@ -57,8 +57,9 @@ def _mark_task_failed(task_id: str, error: str) -> None:
         task = db.query(AITask).filter(AITask.id == _task_key(task_id)).first()
         if not task:
             return
+        error_str = str(error)
         task.status = TaskStatus.failed
-        task.error_message = error[:2000]
+        task.error_message = error_str[:2000] # type: ignore
         task.completed_at = _now()
         task.updated_at = _now()
         task.progress = max(task.progress, 100)

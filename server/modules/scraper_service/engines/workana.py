@@ -5,7 +5,7 @@ from urllib.parse import quote
 
 from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError
 
-from utils import CircuitBreaker, add_observacao, clamp, random_delay, retry_async
+from server.modules.scraper_service.core.utils import CircuitBreaker, add_observacao, clamp, random_delay, retry_async
 
 logger = logging.getLogger("scraper.workana")
 

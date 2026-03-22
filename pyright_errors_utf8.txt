@@ -1,0 +1,139 @@
+﻿c:\Users\filip\Downloads\Scraper\server\middleware\auth.py
+  c:\Users\filip\Downloads\Scraper\server\middleware\auth.py:4:27 - error: "SECRET_KEY" is unknown import symbol (reportAttributeAccessIssue)
+  c:\Users\filip\Downloads\Scraper\server\middleware\auth.py:4:39 - error: "ALGORITHM" is unknown import symbol (reportAttributeAccessIssue)
+c:\Users\filip\Downloads\Scraper\server\middleware\rate_limit.py
+  c:\Users\filip\Downloads\Scraper\server\middleware\rate_limit.py:6:27 - error: "RATE_LIMIT_MAX" is unknown import symbol (reportAttributeAccessIssue)
+  c:\Users\filip\Downloads\Scraper\server\middleware\rate_limit.py:6:43 - error: "RATE_LIMIT_WINDOW" is unknown import symbol (reportAttributeAccessIssue)
+c:\Users\filip\Downloads\Scraper\server\modules\billing\stripe_service.py
+  c:\Users\filip\Downloads\Scraper\server\modules\billing\stripe_service.py:39:16 - warning: Import "stripe" could not be resolved (reportMissingImports)
+c:\Users\filip\Downloads\Scraper\server\routes\auth.py
+  c:\Users\filip\Downloads\Scraper\server\routes\auth.py:8:27 - error: "TOKEN_EXPIRE_HOURS" is unknown import symbol (reportAttributeAccessIssue)
+  c:\Users\filip\Downloads\Scraper\server\routes\auth.py:8:47 - error: "COOKIE_DOMAIN" is unknown import symbol (reportAttributeAccessIssue)
+  c:\Users\filip\Downloads\Scraper\server\routes\auth.py:8:62 - error: "COOKIE_SAMESITE" is unknown import symbol (reportAttributeAccessIssue)
+  c:\Users\filip\Downloads\Scraper\server\routes\auth.py:8:79 - error: "COOKIE_SECURE" is unknown import symbol (reportAttributeAccessIssue)
+c:\Users\filip\Downloads\Scraper\server\services\analytics_service.py
+  c:\Users\filip\Downloads\Scraper\server\services\analytics_service.py:5:27 - error: "AVERAGE_DEAL_VALUE" is unknown import symbol (reportAttributeAccessIssue)
+  c:\Users\filip\Downloads\Scraper\server\services\analytics_service.py:11:16 - error: No overloads for "execute" match the provided arguments (reportCallIssue)
+  c:\Users\filip\Downloads\Scraper\server\services\analytics_service.py:12:13 - error: Argument of type "Literal['SELECT id, COALESCE(status,\'novo\') as status, creaÔÇª']" cannot be assigned to parameter "statement" of type "Executable" in function "execute"
+  ┬á┬á"Literal['SELECT id, COALESCE(status,\'novo\') as status, creaÔÇª']" is not assignable to "Executable" (reportArgumentType)
+c:\Users\filip\Downloads\Scraper\server\services\auth_service.py
+  c:\Users\filip\Downloads\Scraper\server\services\auth_service.py:7:5 - error: "ALGORITHM" is unknown import symbol (reportAttributeAccessIssue)
+  c:\Users\filip\Downloads\Scraper\server\services\auth_service.py:8:5 - error: "AUTO_BOOTSTRAP_ADMIN" is unknown import symbol (reportAttributeAccessIssue)
+  c:\Users\filip\Downloads\Scraper\server\services\auth_service.py:9:5 - error: "BOOTSTRAP_ADMIN_PASSWORD" is unknown import symbol (reportAttributeAccessIssue)
+  c:\Users\filip\Downloads\Scraper\server\services\auth_service.py:10:5 - error: "BOOTSTRAP_ADMIN_USERNAME" is unknown import symbol (reportAttributeAccessIssue)
+  c:\Users\filip\Downloads\Scraper\server\services\auth_service.py:11:5 - error: "SECRET_KEY" is unknown import symbol (reportAttributeAccessIssue)
+  c:\Users\filip\Downloads\Scraper\server\services\auth_service.py:12:5 - error: "TOKEN_EXPIRE_HOURS" is unknown import symbol (reportAttributeAccessIssue)
+  c:\Users\filip\Downloads\Scraper\server\services\auth_service.py:21:9 - error: No overloads for "execute" match the provided arguments (reportCallIssue)
+  c:\Users\filip\Downloads\Scraper\server\services\auth_service.py:22:13 - error: Argument of type "Literal['\n            CREATE TABLE IF NOT EXISTS dashboard_ÔÇª']" cannot be assigned to parameter "statement" of type "Executable" in function "execute"
+  ┬á┬á"Literal['\n            CREATE TABLE IF NOT EXISTS dashboard_ÔÇª']" is not assignable to "Executable" (reportArgumentType)
+  c:\Users\filip\Downloads\Scraper\server\services\auth_service.py:32:15 - error: No overloads for "execute" match the provided arguments (reportCallIssue)
+  c:\Users\filip\Downloads\Scraper\server\services\auth_service.py:32:28 - error: Argument of type "Literal['SELECT id FROM dashboard_users LIMIT 1']" cannot be assigned to parameter "statement" of type "Executable" in function "execute"
+  ┬á┬á"Literal['SELECT id FROM dashboard_users LIMIT 1']" is not assignable to "Executable" (reportArgumentType)
+  c:\Users\filip\Downloads\Scraper\server\services\auth_service.py:37:13 - error: No overloads for "execute" match the provided arguments (reportCallIssue)
+  c:\Users\filip\Downloads\Scraper\server\services\auth_service.py:38:17 - error: Argument of type "Literal['INSERT INTO dashboard_users (username, password_haÔÇª']" cannot be assigned to parameter "statement" of type "Executable" in function "execute"
+  ┬á┬á"Literal['INSERT INTO dashboard_users (username, password_haÔÇª']" is not assignable to "Executable" (reportArgumentType)
+  c:\Users\filip\Downloads\Scraper\server\services\auth_service.py:39:17 - error: Argument of type "tuple[Unknown, str]" cannot be assigned to parameter "params" of type "_CoreAnyExecuteParams | None" in function "execute"
+  ┬á┬áType "tuple[Unknown, str]" is not assignable to type "_CoreAnyExecuteParams | None"
+  ┬á┬á┬á┬á"tuple[Unknown, str]" is not assignable to "Sequence[_CoreSingleExecuteParams]"
+  ┬á┬á┬á┬á┬á┬áType parameter "_T_co@Sequence" is covariant, but "Unknown | str" is not a subtype of "_CoreSingleExecuteParams"
+  ┬á┬á┬á┬á┬á┬á┬á┬áType "Unknown | str" is not assignable to type "_CoreSingleExecuteParams"
+  ┬á┬á┬á┬á┬á┬á┬á┬á┬á┬á"str" is not assignable to "Mapping[str, Any]"
+  ┬á┬á┬á┬á"tuple[Unknown, str]" is not assignable to "Mapping[str, Any]"
+  ┬á┬á┬á┬á"tuple[Unknown, str]" is not assignable to "None" (reportArgumentType)
+  c:\Users\filip\Downloads\Scraper\server\services\auth_service.py:50:15 - error: No overloads for "execute" match the provided arguments (reportCallIssue)
+  c:\Users\filip\Downloads\Scraper\server\services\auth_service.py:51:13 - error: Argument of type "Literal['SELECT password_hash FROM dashboard_users WHERE usÔÇª']" cannot be assigned to parameter "statement" of type "Executable" in function "execute"
+  ┬á┬á"Literal['SELECT password_hash FROM dashboard_users WHERE usÔÇª']" is not assignable to "Executable" (reportArgumentType)
+  c:\Users\filip\Downloads\Scraper\server\services\auth_service.py:52:13 - error: Argument of type "tuple[str]" cannot be assigned to parameter "params" of type "_CoreAnyExecuteParams | None" in function "execute"
+  ┬á┬áType "tuple[str]" is not assignable to type "_CoreAnyExecuteParams | None"
+  ┬á┬á┬á┬á"tuple[str]" is not assignable to "Sequence[_CoreSingleExecuteParams]"
+  ┬á┬á┬á┬á┬á┬áType parameter "_T_co@Sequence" is covariant, but "str" is not a subtype of "_CoreSingleExecuteParams"
+  ┬á┬á┬á┬á┬á┬á┬á┬á"str" is not assignable to "Mapping[str, Any]"
+  ┬á┬á┬á┬á"tuple[str]" is not assignable to "Mapping[str, Any]"
+  ┬á┬á┬á┬á"tuple[str]" is not assignable to "None" (reportArgumentType)
+  c:\Users\filip\Downloads\Scraper\server\services\auth_service.py:67:15 - error: No overloads for "execute" match the provided arguments (reportCallIssue)
+  c:\Users\filip\Downloads\Scraper\server\services\auth_service.py:68:13 - error: Argument of type "Literal['SELECT password_hash FROM dashboard_users WHERE usÔÇª']" cannot be assigned to parameter "statement" of type "Executable" in function "execute"
+  ┬á┬á"Literal['SELECT password_hash FROM dashboard_users WHERE usÔÇª']" is not assignable to "Executable" (reportArgumentType)
+  c:\Users\filip\Downloads\Scraper\server\services\auth_service.py:69:13 - error: Argument of type "tuple[str]" cannot be assigned to parameter "params" of type "_CoreAnyExecuteParams | None" in function "execute"
+  ┬á┬áType "tuple[str]" is not assignable to type "_CoreAnyExecuteParams | None"
+  ┬á┬á┬á┬á"tuple[str]" is not assignable to "Sequence[_CoreSingleExecuteParams]"
+  ┬á┬á┬á┬á┬á┬áType parameter "_T_co@Sequence" is covariant, but "str" is not a subtype of "_CoreSingleExecuteParams"
+  ┬á┬á┬á┬á┬á┬á┬á┬á"str" is not assignable to "Mapping[str, Any]"
+  ┬á┬á┬á┬á"tuple[str]" is not assignable to "Mapping[str, Any]"
+  ┬á┬á┬á┬á"tuple[str]" is not assignable to "None" (reportArgumentType)
+  c:\Users\filip\Downloads\Scraper\server\services\auth_service.py:76:9 - error: No overloads for "execute" match the provided arguments (reportCallIssue)
+  c:\Users\filip\Downloads\Scraper\server\services\auth_service.py:77:13 - error: Argument of type "Literal['UPDATE dashboard_users SET password_hash = ? WHEREÔÇª']" cannot be assigned to parameter "statement" of type "Executable" in function "execute"
+  ┬á┬á"Literal['UPDATE dashboard_users SET password_hash = ? WHEREÔÇª']" is not assignable to "Executable" (reportArgumentType)
+  c:\Users\filip\Downloads\Scraper\server\services\auth_service.py:78:13 - error: Argument of type "tuple[str, str]" cannot be assigned to parameter "params" of type "_CoreAnyExecuteParams | None" in function "execute"
+  ┬á┬áType "tuple[str, str]" is not assignable to type "_CoreAnyExecuteParams | None"
+  ┬á┬á┬á┬á"tuple[str, str]" is not assignable to "Sequence[_CoreSingleExecuteParams]"
+  ┬á┬á┬á┬á┬á┬áType parameter "_T_co@Sequence" is covariant, but "str" is not a subtype of "_CoreSingleExecuteParams"
+  ┬á┬á┬á┬á┬á┬á┬á┬á"str" is not assignable to "Mapping[str, Any]"
+  ┬á┬á┬á┬á"tuple[str, str]" is not assignable to "Mapping[str, Any]"
+  ┬á┬á┬á┬á"tuple[str, str]" is not assignable to "None" (reportArgumentType)
+c:\Users\filip\Downloads\Scraper\server\services\leads_service.py
+  c:\Users\filip\Downloads\Scraper\server\services\leads_service.py:120:17 - error: No overloads for "execute" match the provided arguments (reportCallIssue)
+  c:\Users\filip\Downloads\Scraper\server\services\leads_service.py:121:13 - error: Argument of type "str" cannot be assigned to parameter "statement" of type "Executable" in function "execute"
+  ┬á┬á"str" is not assignable to "Executable" (reportArgumentType)
+  c:\Users\filip\Downloads\Scraper\server\services\leads_service.py:125:16 - error: No overloads for "execute" match the provided arguments (reportCallIssue)
+  c:\Users\filip\Downloads\Scraper\server\services\leads_service.py:126:13 - error: Argument of type "str" cannot be assigned to parameter "statement" of type "Executable" in function "execute"
+  ┬á┬á"str" is not assignable to "Executable" (reportArgumentType)
+  c:\Users\filip\Downloads\Scraper\server\services\leads_service.py:145:16 - error: No overloads for "execute" match the provided arguments (reportCallIssue)
+  c:\Users\filip\Downloads\Scraper\server\services\leads_service.py:146:13 - error: Argument of type "Literal['SELECT COALESCE(status,\'novo\') as s, COUNT(*) FROMÔÇª']" cannot be assigned to parameter "statement" of type "Executable" in function "execute"
+  ┬á┬á"Literal['SELECT COALESCE(status,\'novo\') as s, COUNT(*) FROMÔÇª']" is not assignable to "Executable" (reportArgumentType)
+  c:\Users\filip\Downloads\Scraper\server\services\leads_service.py:155:16 - error: No overloads for "execute" match the provided arguments (reportCallIssue)
+  c:\Users\filip\Downloads\Scraper\server\services\leads_service.py:156:13 - error: Argument of type "Literal['SELECT DISTINCT TRIM(COALESCE(json_extract(data_jsÔÇª']" cannot be assigned to parameter "statement" of type "Executable" in function "execute"
+  ┬á┬á"Literal['SELECT DISTINCT TRIM(COALESCE(json_extract(data_jsÔÇª']" is not assignable to "Executable" (reportArgumentType)
+  c:\Users\filip\Downloads\Scraper\server\services\leads_service.py:172:15 - error: No overloads for "execute" match the provided arguments (reportCallIssue)
+  c:\Users\filip\Downloads\Scraper\server\services\leads_service.py:173:13 - error: Argument of type "LiteralString" cannot be assigned to parameter "statement" of type "Executable" in function "execute"
+  ┬á┬á"str" is not assignable to "Executable" (reportArgumentType)
+  c:\Users\filip\Downloads\Scraper\server\services\leads_service.py:174:13 - error: Argument of type "list[str | int]" cannot be assigned to parameter "params" of type "_CoreAnyExecuteParams | None" in function "execute"
+  ┬á┬á"str" is not assignable to "Mapping[str, Any]"
+  ┬á┬á"str" is not assignable to "Mapping[str, Any]"
+  ┬á┬á"int" is not assignable to "Mapping[str, Any]" (reportArgumentType)
+  c:\Users\filip\Downloads\Scraper\server\services\leads_service.py:185:15 - error: No overloads for "execute" match the provided arguments (reportCallIssue)
+  c:\Users\filip\Downloads\Scraper\server\services\leads_service.py:185:28 - error: Argument of type "LiteralString" cannot be assigned to parameter "statement" of type "Executable" in function "execute"
+  ┬á┬á"str" is not assignable to "Executable" (reportArgumentType)
+  c:\Users\filip\Downloads\Scraper\server\services\leads_service.py:185:79 - error: Argument of type "list[int]" cannot be assigned to parameter "params" of type "_CoreAnyExecuteParams | None" in function "execute"
+  ┬á┬áType "list[int]" is not assignable to type "_CoreAnyExecuteParams | None"
+  ┬á┬á┬á┬á"list[int]" is not assignable to "Sequence[_CoreSingleExecuteParams]"
+  ┬á┬á┬á┬á┬á┬áType parameter "_T_co@Sequence" is covariant, but "int" is not a subtype of "_CoreSingleExecuteParams"
+  ┬á┬á┬á┬á┬á┬á┬á┬á"int" is not assignable to "Mapping[str, Any]"
+  ┬á┬á┬á┬á"list[int]" is not assignable to "Mapping[str, Any]"
+  ┬á┬á┬á┬á"list[int]" is not assignable to "None" (reportArgumentType)
+  c:\Users\filip\Downloads\Scraper\server\services\leads_service.py:195:15 - error: No overloads for "execute" match the provided arguments (reportCallIssue)
+  c:\Users\filip\Downloads\Scraper\server\services\leads_service.py:196:13 - error: Argument of type "Literal['DELETE FROM leads WHERE COALESCE(status,\'novo\') = ÔÇª']" cannot be assigned to parameter "statement" of type "Executable" in function "execute"
+  ┬á┬á"Literal['DELETE FROM leads WHERE COALESCE(status,\'novo\') = ÔÇª']" is not assignable to "Executable" (reportArgumentType)
+  c:\Users\filip\Downloads\Scraper\server\services\leads_service.py:196:68 - error: Argument of type "tuple[str]" cannot be assigned to parameter "params" of type "_CoreAnyExecuteParams | None" in function "execute"
+  ┬á┬áType "tuple[str]" is not assignable to type "_CoreAnyExecuteParams | None"
+  ┬á┬á┬á┬á"tuple[str]" is not assignable to "Sequence[_CoreSingleExecuteParams]"
+  ┬á┬á┬á┬á┬á┬áType parameter "_T_co@Sequence" is covariant, but "str" is not a subtype of "_CoreSingleExecuteParams"
+  ┬á┬á┬á┬á┬á┬á┬á┬á"str" is not assignable to "Mapping[str, Any]"
+  ┬á┬á┬á┬á"tuple[str]" is not assignable to "Mapping[str, Any]"
+  ┬á┬á┬á┬á"tuple[str]" is not assignable to "None" (reportArgumentType)
+  c:\Users\filip\Downloads\Scraper\server\services\leads_service.py:204:15 - error: No overloads for "execute" match the provided arguments (reportCallIssue)
+  c:\Users\filip\Downloads\Scraper\server\services\leads_service.py:205:13 - error: Argument of type "Literal['SELECT id, COALESCE(status,\'novo\') as status, creaÔÇª']" cannot be assigned to parameter "statement" of type "Executable" in function "execute"
+  ┬á┬á"Literal['SELECT id, COALESCE(status,\'novo\') as status, creaÔÇª']" is not assignable to "Executable" (reportArgumentType)
+  c:\Users\filip\Downloads\Scraper\server\services\leads_service.py:207:13 - error: Argument of type "tuple[int]" cannot be assigned to parameter "params" of type "_CoreAnyExecuteParams | None" in function "execute"
+  ┬á┬áType "tuple[int]" is not assignable to type "_CoreAnyExecuteParams | None"
+  ┬á┬á┬á┬á"tuple[int]" is not assignable to "Sequence[_CoreSingleExecuteParams]"
+  ┬á┬á┬á┬á┬á┬áType parameter "_T_co@Sequence" is covariant, but "int" is not a subtype of "_CoreSingleExecuteParams"
+  ┬á┬á┬á┬á┬á┬á┬á┬á"int" is not assignable to "Mapping[str, Any]"
+  ┬á┬á┬á┬á"tuple[int]" is not assignable to "Mapping[str, Any]"
+  ┬á┬á┬á┬á"tuple[int]" is not assignable to "None" (reportArgumentType)
+c:\Users\filip\Downloads\Scraper\utils.py
+  c:\Users\filip\Downloads\Scraper\utils.py:113:35 - error: Argument of type "list[str]" cannot be assigned to parameter "columns" of type "Axes | None" in function "__init__"
+  ┬á┬áType "list[str]" is not assignable to type "Axes | None"
+  ┬á┬á┬á┬á"list[str]" is not assignable to "ExtensionArray"
+  ┬á┬á┬á┬á"list[str]" is not assignable to "ndarray[_AnyShape, dtype[Any]]"
+  ┬á┬á┬á┬á"list[str]" is not assignable to "Index"
+  ┬á┬á┬á┬á"list[str]" is not assignable to "Series"
+  ┬á┬á┬á┬á"list[str]" is incompatible with protocol "SequenceNotStr[Unknown]"
+  ┬á┬á┬á┬á┬á┬á"index" is an incompatible type
+  ┬á┬á┬á┬á┬á┬á┬á┬áType "(value: str, start: SupportsIndex = 0, stop: SupportsIndex = sys.maxsize, /) -> int" is not assignable to type "(value: Any, /, start: int = 0, stop: int = ...) -> int"
+    ... (reportArgumentType)
+  c:\Users\filip\Downloads\Scraper\utils.py:198:22 - error: "authorize" is not exported from module "gspread" (reportPrivateImportUsage)
+  c:\Users\filip\Downloads\Scraper\utils.py:204:58 - error: Argument of type "Literal['1000']" cannot be assigned to parameter "rows" of type "int" in function "add_worksheet"
+  ┬á┬á"Literal['1000']" is not assignable to "int" (reportArgumentType)
+  c:\Users\filip\Downloads\Scraper\utils.py:204:71 - error: Argument of type "str" cannot be assigned to parameter "cols" of type "int" in function "add_worksheet"
+  ┬á┬á"str" is not assignable to "int" (reportArgumentType)
+57 errors, 1 warning, 0 informations

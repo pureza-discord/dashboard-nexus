@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from server.api.deps import get_current_user
@@ -49,6 +49,42 @@ def read_leads(
     )
 
 
+@router.get("/export/csv")
+def export_leads_csv(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not can_export_csv(current_user):
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="CSV export is available only for Pro and Enterprise plans",
+        )
+
+    csv_content = export_csv_content(db, current_user)
+    headers = {"Content-Disposition": "attachment; filename=leads.csv"}
+    return Response(content=csv_content, media_type="text/csv", headers=headers)
+
+
+@router.post("/bulk/status")
+def patch_bulk_status(
+    payload: BulkStatusRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    updated = bulk_update_status(db, current_user, payload.lead_ids, payload.status)
+    return {"ok": True, "updated": updated}
+
+
+@router.post("/bulk/upsert")
+def insert_leads(
+    payload: BulkInsertRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = upsert_leads(db, current_user, [item.model_dump() for item in payload.leads])
+    return {"ok": True, **result}
+
+
 @router.get("/{lead_id}")
 def read_lead(
     lead_id: str,
@@ -69,16 +105,6 @@ def patch_lead(
     return update_lead(db, current_user, lead_id, payload.model_dump(exclude_unset=True))
 
 
-@router.post("/bulk/status")
-def patch_bulk_status(
-    payload: BulkStatusRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    updated = bulk_update_status(db, current_user, payload.lead_ids, payload.status)
-    return {"ok": True, "updated": updated}
-
-
 @router.delete("/{lead_id}")
 def remove_lead(
     lead_id: str,
@@ -87,29 +113,3 @@ def remove_lead(
 ):
     delete_lead(db, current_user, lead_id)
     return {"ok": True}
-
-
-@router.post("/bulk/upsert")
-def insert_leads(
-    payload: BulkInsertRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    result = upsert_leads(db, current_user, [item.model_dump() for item in payload.leads])
-    return {"ok": True, **result}
-
-
-@router.get("/export/csv")
-def export_leads_csv(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    if not can_export_csv(current_user):
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="CSV export is available only for Pro and Enterprise plans",
-        )
-
-    csv_content = export_csv_content(db, current_user)
-    headers = {"Content-Disposition": "attachment; filename=leads.csv"}
-    return Response(content=csv_content, media_type="text/csv", headers=headers)

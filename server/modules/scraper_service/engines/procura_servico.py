@@ -3,11 +3,10 @@ import random
 from datetime import datetime
 from urllib.parse import quote
 
-from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError
+from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError, Browser, Page, BrowserContext # type: ignore
+from utils import CircuitBreaker, add_observacao, clamp, random_delay, retry_async # type: ignore
 
-from utils import CircuitBreaker, add_observacao, clamp, random_delay, retry_async
-from workana_scraper import WorkanaScraper
-
+from server.modules.scraper_service.engines.workana import WorkanaEngine # type: ignore
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
 
 # Termos de busca por idioma (pessoa PROCURANDO contratar serviço)
@@ -65,7 +64,7 @@ class ProcuraServicoScraper:
         self.slowmo_ms = slowmo_ms
         self.proxy_manager = proxy_manager
         self.concurrency = max(1, concurrency)
-        self.workana = WorkanaScraper(
+        self.workana = WorkanaEngine(
             headless=headless, slowmo_ms=slowmo_ms, proxy_manager=proxy_manager
         )
         self.breaker = CircuitBreaker()
@@ -84,8 +83,7 @@ class ProcuraServicoScraper:
 
         lang = LANG_MAP.get(pais, "pt")
         terms = SEARCH_TERMS.get(lang, SEARCH_TERMS["pt"])
-        random.shuffle(terms)
-        query_batch = " OR ".join(terms[:6])
+        query_batch = " OR ".join(random.sample(terms, min(6, len(terms))))
 
         tasks = [
             asyncio.create_task(
@@ -93,7 +91,7 @@ class ProcuraServicoScraper:
             ),
             asyncio.create_task(
                 _guard(
-                    self.workana.search_projects(nicho, per_source, pais, nicho, cidade)
+                    self.workana.search_leads(query=nicho, pais=pais, nicho=nicho, cidade=cidade, limite=per_source)
                 )
             ),
             asyncio.create_task(
@@ -107,13 +105,16 @@ class ProcuraServicoScraper:
         results = await asyncio.gather(*tasks, return_exceptions=True)
         leads: list[dict] = []
         for item in results:
-            if isinstance(item, Exception):
+            if isinstance(item, BaseException):
                 print(f"  [procura] fonte com erro: {type(item).__name__}")
                 continue
-            leads += item
+            if isinstance(item, list):
+                leads.extend(item)
 
         print(f"  [procura] {len(leads)} oportunidades encontradas")
-        return leads[:limite]
+        final_leads = list(leads)
+        # type: ignore
+        return final_leads[:limite]
 
     # ------------------------------------------------------------------
     # Google Search (query genérica)
@@ -169,7 +170,8 @@ class ProcuraServicoScraper:
 
         async with async_playwright() as pw:
             browser = await self._launch(pw)
-            page = await (await browser.new_context(locale="pt-BR", user_agent=UA)).new_page()
+            ctx = await browser.new_context(locale="pt-BR", user_agent=UA)
+            page = await ctx.new_page()
 
             try:
                 await page.goto(url, wait_until="domcontentloaded", timeout=30_000)
@@ -210,7 +212,7 @@ class ProcuraServicoScraper:
     # Helpers
     # ------------------------------------------------------------------
 
-    async def _launch(self, pw):
+    async def _launch(self, pw) -> Browser:
         proxy = self.proxy_manager.get_proxy() if self.proxy_manager else None
         return await pw.chromium.launch(
             headless=self.headless,
@@ -226,7 +228,8 @@ class ProcuraServicoScraper:
 
         async with async_playwright() as pw:
             browser = await self._launch(pw)
-            page = await (await browser.new_context(locale="pt-BR", user_agent=UA)).new_page()
+            ctx = await browser.new_context(locale="pt-BR", user_agent=UA)
+            page = await ctx.new_page()
 
             try:
                 await page.goto(url, wait_until="domcontentloaded", timeout=30_000)
@@ -295,8 +298,10 @@ class ProcuraServicoScraper:
             "fonte_link": link,
             "observacoes": ",".join(obs_parts),
         }
-        if snippet:
-            lead["descricao"] = snippet[:300]
+        if snippet and isinstance(snippet, str):
+            snippet_str = str(snippet)
+            # type: ignore
+            lead["descricao"] = snippet_str[:300]
         if preco:
             lead["preco"] = preco
 

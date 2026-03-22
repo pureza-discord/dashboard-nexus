@@ -19,20 +19,26 @@ def _env_bool(name: str, default: bool) -> bool:
 
 def _env_int(name: str, default: int) -> int:
     raw = os.getenv(name)
-    if raw is None or not raw.strip():
+    if raw is None:
+        return default
+    stripped = raw.strip()
+    if not stripped:
         return default
     try:
-        return int(raw.strip())
+        return int(stripped)
     except ValueError:
         return default
 
 
 def _env_float(name: str, default: float) -> float:
     raw = os.getenv(name)
-    if raw is None or not raw.strip():
+    if raw is None:
+        return default
+    stripped = raw.strip()
+    if not stripped:
         return default
     try:
-        return float(raw.strip())
+        return float(stripped)
     except ValueError:
         return default
 
@@ -62,7 +68,6 @@ class Settings:
     cors_origins: list[str]
     cors_allow_credentials: bool
     scraper_mode: str
-    openai_api_key: str | None
     enable_external_data: bool
     trends_geo_default: str
     log_level: str
@@ -77,7 +82,6 @@ class Settings:
     auto_bootstrap_admin: bool
     bootstrap_admin_email: str
     bootstrap_admin_password: str
-    openai_model: str
     asaas_api_base_url: str
     asaas_api_key: str | None
     asaas_webhook_token: str | None
@@ -145,7 +149,6 @@ def get_settings() -> Settings:
         cors_origins=_split_csv(os.getenv("CORS_ORIGINS"), default_origins),
         cors_allow_credentials=_env_bool("CORS_ALLOW_CREDENTIALS", True),
         scraper_mode=os.getenv("SCRAPER_MODE", "google_maps").strip().lower() or "google_maps",
-        openai_api_key=os.getenv("OPENAI_API_KEY", "").strip() or None,
         enable_external_data=_env_bool("ENABLE_EXTERNAL_DATA", True),
         trends_geo_default=os.getenv("TRENDS_GEO_DEFAULT", "BR").strip().upper() or "BR",
         log_level=os.getenv("LOG_LEVEL", "INFO").strip().upper() or "INFO",
@@ -160,7 +163,6 @@ def get_settings() -> Settings:
         auto_bootstrap_admin=_env_bool("AUTO_BOOTSTRAP_ADMIN", True),
         bootstrap_admin_email=os.getenv("BOOTSTRAP_ADMIN_EMAIL", "admin@nexus.local").strip().lower() or "admin@nexus.local",
         bootstrap_admin_password=os.getenv("BOOTSTRAP_ADMIN_PASSWORD", "admin123").strip() or "admin123",
-        openai_model=os.getenv("OPENAI_MODEL", "gpt-4o").strip() or "gpt-4o",
         asaas_api_base_url=os.getenv("ASAAS_API_BASE_URL", "https://api.asaas.com/v3").strip()
         or "https://api.asaas.com/v3",
         asaas_api_key=os.getenv("ASAAS_API_KEY", "").strip() or None,

@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import (
+from sqlalchemy import ( # type: ignore
     JSON,
     Boolean,
     Date,
@@ -16,9 +16,9 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship # type: ignore
 
-from server.db.base import Base
+from server.db.base import Base # type: ignore
 
 
 def utcnow() -> datetime:
@@ -215,6 +215,7 @@ class AIMessage(Base):
     task_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("ai_tasks.id", ondelete="SET NULL"), nullable=True, index=True
     )
+    session_id: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
     role: Mapped[MessageRole] = mapped_column(Enum(MessageRole), index=True)
     content: Mapped[str] = mapped_column(Text)
     message_metadata: Mapped[dict] = mapped_column("metadata", JSON, default=dict)

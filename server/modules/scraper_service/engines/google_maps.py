@@ -7,7 +7,7 @@ from urllib.parse import quote
 
 from playwright.async_api import async_playwright
 
-from utils import add_observacao
+from server.modules.scraper_service.core.utils import add_observacao
 
 logger = logging.getLogger("scraper.google_maps")
 
@@ -196,6 +196,7 @@ class GoogleMapsEngine:
             domain, lang, query,
         )
 
+        leads: list[dict] = []
         async with async_playwright() as pw:
             browser = await self._launch(pw)
             try:
@@ -206,7 +207,7 @@ class GoogleMapsEngine:
         logger.info("[SCRAPER] Google Maps | Results: %d leads captured", len(leads))
         return leads
 
-    async def _launch(self, pw):
+    async def _launch(self, pw: "async_playwright") -> "Browser":  # type: ignore[name-defined]
         proxy = self.proxy_manager.get_proxy() if self.proxy_manager else None
         return await pw.chromium.launch(
             headless=self.headless,
@@ -218,7 +219,7 @@ class GoogleMapsEngine:
             proxy=proxy,
         )
 
-    async def _run(self, browser, url, lang, pais, nicho, cidade, limite):
+    async def _run(self, browser: "Browser", url: str, lang: str, pais: str, nicho: str, cidade: str | None, limite: int) -> list[dict]:  # type: ignore[name-defined]
         ctx = await browser.new_context(
             locale=lang,
             viewport={"width": 1920, "height": 1080},
@@ -242,7 +243,7 @@ class GoogleMapsEngine:
         await page.screenshot(path=self.debug_dir / "02_scrolled.png")
 
         cards = page.locator(self.CARD)
-        total = await cards.count()
+        total: int = await cards.count()
         logger.debug("[SCRAPER] Google Maps | %d cards found", total)
 
         if total == 0:
@@ -252,7 +253,7 @@ class GoogleMapsEngine:
         leads: list[dict] = []
         seen_names: set[str] = set()
 
-        for i in range(min(total, limite)):
+        for i in range(int(min(total, limite))):
             card = cards.nth(i)
             try:
                 lead = await self._process_card(page, card, i, pais, nicho, cidade)
@@ -334,7 +335,7 @@ class GoogleMapsEngine:
             if await page.locator(self.CARD).count() >= limite:
                 break
 
-    async def _process_card(self, page, card, idx, pais, nicho, cidade):
+    async def _process_card(self, page: "Page", card: "Locator", idx: int, pais: str, nicho: str, cidade: str | None) -> dict | None:  # type: ignore[name-defined]
         await card.scroll_into_view_if_needed()
         await page.wait_for_timeout(600)
         await card.click(timeout=8000)

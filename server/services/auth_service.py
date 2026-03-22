@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from jose import jwt
 from passlib.context import CryptContext
 
+from sqlalchemy import text
 from server.config import (
     ALGORITHM,
     AUTO_BOOTSTRAP_ADMIN,
@@ -19,7 +20,7 @@ pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
 def init_users_table() -> None:
     with get_conn() as conn:
         conn.execute(
-            """
+            text("""
             CREATE TABLE IF NOT EXISTS dashboard_users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE NOT NULL,
@@ -27,16 +28,16 @@ def init_users_table() -> None:
                 role TEXT DEFAULT 'admin',
                 created_at TEXT DEFAULT (datetime('now'))
             )
-            """
+            """)
         )
-        row = conn.execute("SELECT id FROM dashboard_users LIMIT 1").fetchone()
+        row = conn.execute(text("SELECT id FROM dashboard_users LIMIT 1")).fetchone()
 
         if not row and AUTO_BOOTSTRAP_ADMIN:
             bootstrap_password = BOOTSTRAP_ADMIN_PASSWORD or "admin123"
             password_hash = pwd_ctx.hash(bootstrap_password)
             conn.execute(
-                "INSERT INTO dashboard_users (username, password_hash) VALUES (?, ?)",
-                (BOOTSTRAP_ADMIN_USERNAME, password_hash),
+                text("INSERT INTO dashboard_users (username, password_hash) VALUES (:usr, :pwd)"),
+                {"usr": BOOTSTRAP_ADMIN_USERNAME, "pwd": password_hash},
             )
             print("\n[AUTH] Bootstrap admin created.")
             print(f"[AUTH] Username: {BOOTSTRAP_ADMIN_USERNAME}")
@@ -48,8 +49,8 @@ def init_users_table() -> None:
 def verify_credentials(username: str, password: str) -> bool:
     with get_conn() as conn:
         row = conn.execute(
-            "SELECT password_hash FROM dashboard_users WHERE username = ?",
-            (username,),
+            text("SELECT password_hash FROM dashboard_users WHERE username = :usr"),
+            {"usr": username},
         ).fetchone()
 
     if not row:
@@ -65,8 +66,8 @@ def create_token(username: str) -> str:
 def change_password(username: str, current: str, new_password: str) -> bool:
     with get_conn() as conn:
         row = conn.execute(
-            "SELECT password_hash FROM dashboard_users WHERE username = ?",
-            (username,),
+            text("SELECT password_hash FROM dashboard_users WHERE username = :usr"),
+            {"usr": username},
         ).fetchone()
 
         if not row or not pwd_ctx.verify(current, row[0]):
@@ -74,8 +75,8 @@ def change_password(username: str, current: str, new_password: str) -> bool:
 
         password_hash = pwd_ctx.hash(new_password)
         conn.execute(
-            "UPDATE dashboard_users SET password_hash = ? WHERE username = ?",
-            (password_hash, username),
+            text("UPDATE dashboard_users SET password_hash = :pwd WHERE username = :usr"),
+            {"pwd": password_hash, "usr": username},
         )
         conn.commit()
     return True

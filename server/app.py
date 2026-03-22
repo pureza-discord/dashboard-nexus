@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from server.api.system_router import router as system_router
 from server.core.database import SessionLocal, init_db
 from server.core.settings import get_settings
+from server.middleware.security_headers import SecurityHeadersMiddleware
 from server.modules.ai_orchestrator.router import router as ai_router
 from server.modules.analytics.router import router as analytics_router
 from server.modules.auth.router import router as auth_router
@@ -24,6 +25,9 @@ app = FastAPI(
     docs_url="/docs" if settings.environment != "production" else None,
     redoc_url=None,
 )
+
+# Security headers (before CORS so headers are added to all responses)
+app.add_middleware(SecurityHeadersMiddleware)
 
 app.add_middleware(
     CORSMiddleware,

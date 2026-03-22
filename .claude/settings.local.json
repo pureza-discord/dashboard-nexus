@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(python:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(curl:*)",
+      "Bash(__NEW_LINE_5e54cc87a47fe40a__ echo:*)",
+      "Bash(__NEW_LINE_54db681d70b4fddd__ echo:*)",
+      "Bash(pkill:*)"
     ]
   }
 }

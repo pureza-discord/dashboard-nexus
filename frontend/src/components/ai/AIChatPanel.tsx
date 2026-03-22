@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Loader2, SendHorizonal } from 'lucide-react'
+import { Loader2, SendHorizonal, Plus, Trash2, X } from 'lucide-react'
+import { v4 as uuidv4 } from 'uuid'
 import { api } from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import { useTheme, THEME_LABELS } from '../../context/ThemeContext'
@@ -11,6 +12,13 @@ type ChatMessage = {
   task_id?: string | null
   metadata?: Record<string, unknown>
   created_at?: string
+}
+
+type ChatSession = {
+  session_id: string
+  title: string
+  last_message_at: string | null
+  message_count: number
 }
 
 type AITask = {
@@ -48,22 +56,32 @@ const STATUS_MAP: Record<string, { key: string; label: string }> = {
 
 const COMMANDS_HELP = `Comandos disponíveis:
 
-/help — Exibe esta lista de comandos
-/clear — Limpa todas as mensagens do chat
-/novos — Lista leads com status "Novos"
-/contatados — Lista leads com status "Contatados"
-/proposta — Lista leads com status "Proposta"
-/fechados — Lista leads com status "Fechados"
-/perdidos — Lista leads com status "Perdidos"
-/credits — Mostra seus créditos restantes
-/layout — Altera o tema da página inteira (Dark, Light, Dracula)
-/pesquisar {Nicho} {UF} {Cidade} {Qtd} — Busca leads
-  Ex: /pesquisar Restaurantes SP "São Paulo" 50
+Buscar leads (linguagem natural):
+  buscar leads de [nicho] em [cidade], [país]
+  buscar [quantidade] [nicho] em [cidade], [país]
+  Ex: buscar leads de restaurantes em São Paulo, Brasil
+  Ex: search leads for dental clinics in Toronto, Canada
+  Ex: buscar 200 clínicas em Lisboa, Portugal
 
-Digite qualquer mensagem em linguagem natural para conversar comigo.`
+Análise de mercado:
+  analisar mercado de [nicho] em [cidade], [país]
+  Ex: analisar mercado de tech em Porto, Portugal
 
-const INTRO_MESSAGE = `Eu sou o Jarvis — Assistente de AI para geração de Leads.
-Posso buscar empresas por nicho, cidade ou analisar mercado.
+Atalhos:
+  /help — Exibe esta lista de comandos
+  /clear — Limpa todas as mensagens do chat
+  /novos — Lista leads com status "Novos"
+  /contatados — Lista leads "Contatados"
+  /proposta — Lista leads "Proposta"
+  /fechados — Lista leads "Fechados"
+  /perdidos — Lista leads "Perdidos"
+  /credits — Mostra seus créditos restantes
+  /layout — Altera o tema (Dark, Light, Dracula)
+  /pesquisar {Nicho} {UF} {Cidade} {Qtd} — Busca rápida
+    Ex: /pesquisar Restaurantes SP "São Paulo" 50`
+
+const INTRO_MESSAGE = `Eu sou o Jarvis — Assistente de Leads.
+Posso buscar empresas por nicho e cidade, ou analisar mercado.
 
 ${COMMANDS_HELP}`
 
@@ -79,14 +97,33 @@ export default function AIChatPanel({ onDataChanged }: Props) {
     intent: string
   } | null>(null)
   const [activeTask, setActiveTask] = useState<AITask | null>(null)
+  
+  // Session State
+  const [sessionId, setSessionId] = useState<string>(() => uuidv4())
+  const [sessions, setSessions] = useState<ChatSession[]>([])
+  const [showHistory, setShowHistory] = useState(false)
+  
   const [loadingHistory, setLoadingHistory] = useState(true)
 
   const listRef = useRef<HTMLDivElement | null>(null)
 
-  const loadHistory = async () => {
-    const res = await api<{ items: ChatMessage[] }>('/api/ai/messages?limit=80')
-    setMessages(res.items || [])
-  }
+  const loadHistory = useCallback(async (sid: string) => {
+    try {
+      const res = await api<{ items: ChatMessage[] }>(`/api/ai/chat/sessions/${sid}/messages?limit=80`)
+      setMessages(res.items || [])
+    } catch {
+      setMessages([])
+    }
+  }, [])
+
+  const loadSessions = useCallback(async () => {
+    try {
+      const res = await api<ChatSession[]>('/api/ai/chat/sessions')
+      setSessions(res || [])
+    } catch {
+      setSessions([])
+    }
+  }, [])
 
   const loadRecentTask = async () => {
     const res = await api<{ items: AITask[] }>('/api/ai/tasks?limit=1')
@@ -98,11 +135,18 @@ export default function AIChatPanel({ onDataChanged }: Props) {
     }
   }
 
+  // Fetch sessions on mount
+  useEffect(() => {
+    void loadSessions()
+  }, [loadSessions])
+
+  // Fetch messages when sessionId changes
   useEffect(() => {
     let mounted = true
     const boot = async () => {
+      setLoadingHistory(true)
       try {
-        await Promise.all([loadHistory(), loadRecentTask()])
+        await Promise.all([loadHistory(sessionId), loadRecentTask()])
       } finally {
         if (mounted) setLoadingHistory(false)
       }
@@ -111,7 +155,7 @@ export default function AIChatPanel({ onDataChanged }: Props) {
     return () => {
       mounted = false
     }
-  }, [])
+  }, [sessionId, loadHistory])
 
   useEffect(() => {
     if (!listRef.current) return
@@ -125,7 +169,7 @@ export default function AIChatPanel({ onDataChanged }: Props) {
         const fresh = await api<AITask>(`/api/ai/tasks/${activeTask.id}`)
         setActiveTask(fresh)
         if (fresh.status === 'completed' || fresh.status === 'failed' || fresh.status === 'cancelled') {
-          await loadHistory()
+          await loadHistory(sessionId)
           if (onDataChanged) await onDataChanged()
         }
       } catch {
@@ -151,10 +195,11 @@ export default function AIChatPanel({ onDataChanged }: Props) {
 
     if (cmd === '/clear') {
       try {
-        await api('/api/ai/messages', { method: 'DELETE' })
+        await api(`/api/ai/chat/sessions/${sessionId}`, { method: 'DELETE' })
         setMessages([])
         setPendingConfirm(null)
         setActiveTask(null)
+        await loadSessions()
       } catch {
         addLocalMessage('assistant', 'Erro ao limpar chat no servidor. Nenhuma mensagem foi removida.')
       }
@@ -251,7 +296,7 @@ export default function AIChatPanel({ onDataChanged }: Props) {
     // Unknown command
     addLocalMessage('assistant', `Comando desconhecido: ${cmd}\nDigite /help para ver os comandos disponíveis.`)
     return true
-  }, [theme, user, addLocalMessage, cycleTheme])
+  }, [theme, user, addLocalMessage, cycleTheme, sessionId, loadSessions])
 
   const canSend = input.trim().length > 0 && !sending
 
@@ -260,9 +305,10 @@ export default function AIChatPanel({ onDataChanged }: Props) {
     try {
       const response = await api<ChatResponse>('/api/ai/chat', {
         method: 'POST',
-        body: JSON.stringify({ message, confirm_execution: confirmExecution }),
+        body: JSON.stringify({ message, confirm_execution: confirmExecution, session_id: sessionId }),
       })
-      await loadHistory()
+      await loadHistory(sessionId)
+      await loadSessions()
       if (response.requires_confirmation) {
         setPendingConfirm({
           message,
@@ -273,7 +319,7 @@ export default function AIChatPanel({ onDataChanged }: Props) {
         setPendingConfirm(null)
         if (confirmExecution) {
           setMessages([])
-          await loadHistory()
+          await loadHistory(sessionId)
         }
       }
       if (response.task) {
@@ -344,15 +390,95 @@ export default function AIChatPanel({ onDataChanged }: Props) {
     return activeTask.task_type
   }, [activeTask])
 
+  const startNewChat = () => {
+    const newId = uuidv4();
+    setSessionId(newId);
+    setMessages([]);
+    setActiveTask(null);
+    setPendingConfirm(null);
+    setShowHistory(false);
+  }
+
+  const handleDeleteSession = async (e: React.MouseEvent, sid: string) => {
+    e.stopPropagation();
+    try {
+      await api(`/api/ai/chat/sessions/${sid}`, { method: 'DELETE' });
+      await loadSessions();
+      if (sid === sessionId) {
+        startNewChat();
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   return (
     <aside
-      className="flex max-h-[calc(100vh-12rem)] min-h-[400px] flex-col overflow-hidden rounded-xl transition-colors duration-300"
+      className="relative flex max-h-[calc(100vh-12rem)] min-h-[400px] flex-col overflow-hidden rounded-xl transition-colors duration-300"
       style={{ background: 'var(--t-surface)', border: '1px solid var(--t-border)' }}
     >
-      <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--t-border)' }}>
-        <p className="text-[13px] font-semibold" style={{ color: 'var(--t-text)' }}>Jarvis</p>
-        <p className="mt-0.5 text-[12px]" style={{ color: 'var(--t-muted2)' }}>Assistente de AI para geração de Leads</p>
+      <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--t-border)' }}>
+        <div>
+          <p className="text-[13px] font-semibold flex items-center gap-2" style={{ color: 'var(--t-text)' }}>
+            Jarvis
+            <button
+              onClick={() => setShowHistory(!showHistory)}
+              className="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider transition hover:bg-white/10"
+              style={{ border: '1px solid var(--t-border)' }}
+            >
+              Exibir Histórico
+            </button>
+          </p>
+          <p className="mt-0.5 text-[12px]" style={{ color: 'var(--t-muted2)' }}>Assistente de Leads</p>
+        </div>
+        
+        <button
+          onClick={startNewChat}
+          className="p-1.5 rounded-lg transition hover:bg-white/5"
+          style={{ color: 'var(--t-muted)' }}
+          title="Novo Chat"
+        >
+          <Plus className="w-5 h-5" />
+        </button>
       </div>
+
+      {showHistory && (
+        <div className="absolute top-[65px] left-0 right-0 z-20 flex-1 h-[calc(100%-65px)] overflow-y-auto px-4 py-4 space-y-2 backdrop-blur-xl" style={{ background: 'var(--t-surface-opacity-90, rgba(0,0,0,0.95))' }}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold" style={{ color: 'var(--t-text)' }}>Seus chats anteriores</h3>
+            <button onClick={() => setShowHistory(false)} className="p-1 hover:bg-white/10 rounded">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          {sessions.length === 0 ? (
+            <p className="text-xs text-center py-8" style={{ color: 'var(--t-muted)' }}>Nenhum chat no histórico.</p>
+          ) : (
+            sessions.map(s => (
+              <div
+                key={s.session_id}
+                onClick={() => {
+                  setSessionId(s.session_id);
+                  setShowHistory(false);
+                }}
+                className={`group flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors hover:bg-white/5 ${s.session_id === sessionId ? 'bg-white/5 ring-1 ring-nexus-green/30' : ''}`}
+                style={{ border: '1px solid var(--t-border)' }}
+              >
+                <div className="flex-1 min-w-0 pr-3">
+                  <p className="text-[13px] font-medium truncate" style={{ color: 'var(--t-text)' }}>{s.title}</p>
+                  <p className="text-[11px] mt-1" style={{ color: 'var(--t-muted2)' }}>{s.message_count} mensagens • {s.last_message_at ? new Date(s.last_message_at).toLocaleDateString() : ''}</p>
+                </div>
+                <button
+                  onClick={(e) => handleDeleteSession(e, s.session_id)}
+                  className="opacity-0 group-hover:opacity-100 p-1.5 rounded text-red-400 hover:bg-red-400/10 transition"
+                  title="Excluir chat"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      )}
 
       <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto px-5 py-5">
         {loadingHistory ? (
@@ -442,7 +568,7 @@ export default function AIChatPanel({ onDataChanged }: Props) {
               }
             }}
             rows={2}
-            placeholder="Ex: /pesquisar Clínicas SP Recife 200"
+            placeholder="Ex: buscar leads de clínicas em Recife, Brasil"
             className="flex-1 resize-none rounded-lg px-3 py-2.5 text-[13px] transition"
             style={{
               border: '1px solid var(--t-input-border)',

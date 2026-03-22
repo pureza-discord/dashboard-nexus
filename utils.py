@@ -110,7 +110,7 @@ def dedupe_leads_local(leads: Iterable[dict]) -> list[dict]:
 def save_csv(leads: list[dict], path: str) -> None:
     """Salva CSV com encoding compativel com Excel."""
     if not leads:
-        df = pd.DataFrame(columns=COLUMNS)
+        df = pd.DataFrame(columns=COLUMNS)  # type: ignore
     else:
         df = pd.DataFrame(leads)
         for col in COLUMNS:
@@ -195,13 +195,13 @@ def export_to_gsheets(
         "https://www.googleapis.com/auth/drive",
     ]
     creds = Credentials.from_service_account_file(credentials_path, scopes=scopes)
-    client = gspread.authorize(creds)
+    client = gspread.authorize(creds)  # type: ignore
 
     sh = client.open_by_key(sheet_id)
     try:
         ws = sh.worksheet(worksheet_name)
     except Exception:
-        ws = sh.add_worksheet(title=worksheet_name, rows="1000", cols=str(len(columns)))
+        ws = sh.add_worksheet(title=worksheet_name, rows=1000, cols=len(columns))
 
     rows = [columns]
     for lead in leads:

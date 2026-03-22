@@ -215,3 +215,58 @@ def admin_change_plan(
         "new_plan": new_plan.value,
         "new_balance": user.credits_balance,
     }
+
+
+# ---------------------------------------------------------------------------
+# Stripe endpoints
+# ---------------------------------------------------------------------------
+
+@router.post("/stripe/checkout")
+def stripe_checkout(
+    payload: PlanPaymentRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Create a Stripe Checkout session for plan upgrade."""
+    try:
+        from server.modules.billing.stripe_service import create_plan_checkout
+        result = create_plan_checkout(db, current_user, payload.plan_key, payload.billing_cycle)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e))
+
+
+@router.post("/stripe/credits")
+def stripe_credits(
+    payload: CreditsPaymentRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Create a Stripe Checkout session for credit pack purchase."""
+    try:
+        from server.modules.billing.stripe_service import create_credits_checkout
+        result = create_credits_checkout(db, current_user, payload.credits)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e))
+
+
+@router.post("/webhook/stripe")
+async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
+    """Receives payment confirmation from Stripe. Public endpoint (no auth)."""
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature", "")
+
+    try:
+        from server.modules.billing.stripe_service import process_stripe_webhook
+        result = process_stripe_webhook(payload, sig_header, db)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e))
+

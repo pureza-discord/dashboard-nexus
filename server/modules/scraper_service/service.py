@@ -9,15 +9,15 @@ import logging
 from dataclasses import dataclass
 from typing import Callable, Literal
 
-from server.core.settings import get_settings
-from server.modules.scraper_service.core.geo_resolver import validate_geo
-from server.modules.scraper_service.core.normalizer import deduplicate, normalize_leads
-from server.modules.scraper_service.core.query_builder import build_google_maps_query, build_workana_query
+from server.core.settings import get_settings # type: ignore
+from server.modules.scraper_service.core.geo_resolver import validate_geo # type: ignore
+from server.modules.scraper_service.core.normalizer import deduplicate, normalize_leads # type: ignore
+from server.modules.scraper_service.core.query_builder import build_google_maps_query, build_workana_query # type: ignore
 
 settings = get_settings()
 logger = logging.getLogger("scraper")
 
-Source = Literal["google_maps", "workana", "linkedin", "facebook"]
+Source = Literal["google_maps", "google_search", "workana", "linkedin", "facebook", "procura_servico"]
 
 ProgressCallback = Callable[[int, str], None]
 
@@ -57,11 +57,14 @@ def search_leads(request: ScrapeRequest, progress: ProgressCallback | None = Non
 
     sanitized = ScrapeRequest(
         nicho=nicho,
-        cidade=cidade,
-        pais=pais,
+        cidade=str(cidade) if cidade is not None else None,
+        pais=str(pais),
         quantidade=quantidade,
         source=request.source,
     )
+
+    if request.source == "google_search":
+        return _run_google_search(sanitized, progress)
 
     if request.source == "workana":
         return _run_workana(sanitized, progress)
@@ -71,6 +74,9 @@ def search_leads(request: ScrapeRequest, progress: ProgressCallback | None = Non
 
     if request.source == "facebook":
         return _run_facebook(sanitized, progress)
+
+    if request.source == "procura_servico":
+        return _run_procura_servico(sanitized, progress)
 
     # Default: google_maps
     if settings.scraper_mode == "google_maps":
@@ -88,6 +94,58 @@ def collect_leads(request: ScrapeRequest, progress: ProgressCallback | None = No
 
 
 # --------------------------------------------------------------------------
+# Google Search engine (lightweight, no browser)
+# --------------------------------------------------------------------------
+def _run_google_search(request: ScrapeRequest, progress: ProgressCallback | None) -> list[dict]:
+    try:
+        return asyncio.run(_run_google_search_async(request, progress))
+    except Exception as exc:
+        raise RuntimeError(f"Google Search scraping failed: {exc}") from exc
+
+
+async def _run_google_search_async(request: ScrapeRequest, progress: ProgressCallback | None) -> list[dict]:
+    from server.modules.scraper_service.engines.google_search import GoogleSearchEngine  # type: ignore
+
+    if progress:
+        progress(10, "Initializing Google Search")
+
+    query = build_google_maps_query(request.nicho, request.cidade, request.pais)
+    engine = GoogleSearchEngine()
+    raw_leads = await engine.search_leads(
+        query=query,
+        pais=request.pais,
+        nicho=request.nicho,
+        cidade=request.cidade,
+        limite=request.quantidade,
+    )
+
+    if not raw_leads:
+        raise RuntimeError("Google Search returned zero results for the given filters")
+
+    if progress:
+        progress(75, "Normalizing results")
+
+    normalized = normalize_leads(
+        raw_leads[:request.quantidade],
+        nicho=request.nicho,
+        pais=request.pais,
+        cidade=request.cidade,
+        source="google_search",
+    )
+    normalized = deduplicate(normalized)
+
+    logger.info(
+        "[SCRAPER] Google Search | Niche: %s | Country: %s | City: %s | Qty: %d | Results: %d",
+        request.nicho, request.pais, request.cidade, request.quantidade, len(normalized),
+    )
+
+    if progress:
+        progress(95, "Google Search leads collected successfully")
+
+    return normalized
+
+
+# --------------------------------------------------------------------------
 # Google Maps engine
 # --------------------------------------------------------------------------
 def _run_google_maps(request: ScrapeRequest, progress: ProgressCallback | None) -> list[dict]:
@@ -98,10 +156,11 @@ def _run_google_maps(request: ScrapeRequest, progress: ProgressCallback | None) 
 
 
 async def _run_google_maps_async(request: ScrapeRequest, progress: ProgressCallback | None) -> list[dict]:
-    from server.modules.scraper_service.engines.google_maps import GoogleMapsEngine
-    from website_enricher import WebsiteEnricher
+    from server.modules.scraper_service.engines.google_maps import GoogleMapsEngine # type: ignore
+    from server.modules.scraper_service.engines.website_enricher import WebsiteEnricher # type: ignore
 
     if progress:
+        # type: ignore
         progress(10, "Initializing browser for scraping")
 
     query = build_google_maps_query(request.nicho, request.cidade, request.pais)
@@ -118,6 +177,7 @@ async def _run_google_maps_async(request: ScrapeRequest, progress: ProgressCallb
         raise RuntimeError("Google Maps returned zero results for the given filters")
 
     if progress:
+        # type: ignore
         progress(68, "Enriching contact data")
 
     enricher = WebsiteEnricher(headless=True, slowmo_ms=0, concurrency=3)
@@ -144,6 +204,7 @@ async def _run_google_maps_async(request: ScrapeRequest, progress: ProgressCallb
     )
 
     if progress:
+        # type: ignore
         progress(95, "Real leads collected successfully")
 
     return normalized
@@ -160,9 +221,10 @@ def _run_workana(request: ScrapeRequest, progress: ProgressCallback | None) -> l
 
 
 async def _run_workana_async(request: ScrapeRequest, progress: ProgressCallback | None) -> list[dict]:
-    from server.modules.scraper_service.engines.workana import WorkanaEngine
+    from server.modules.scraper_service.engines.workana import WorkanaEngine # type: ignore
 
     if progress:
+        # type: ignore
         progress(10, "Initializing Workana search")
 
     query = build_workana_query(request.nicho, request.pais)
@@ -191,6 +253,7 @@ async def _run_workana_async(request: ScrapeRequest, progress: ProgressCallback 
     )
 
     if progress:
+        # type: ignore
         progress(95, "Workana leads collected successfully")
 
     return normalized
@@ -204,6 +267,7 @@ def _generate_mock_leads(request: ScrapeRequest, progress: ProgressCallback | No
     import time
 
     if progress:
+        # type: ignore
         progress(10, "Initializing mock search")
 
     nicho = request.nicho
@@ -224,6 +288,7 @@ def _generate_mock_leads(request: ScrapeRequest, progress: ProgressCallback | No
     used_names: set[str] = set()
 
     if progress:
+        # type: ignore
         progress(25, f"Searching {nicho} in {cidade or pais}")
 
     for i in range(quantidade):
@@ -239,7 +304,9 @@ def _generate_mock_leads(request: ScrapeRequest, progress: ProgressCallback | No
             attempt += 1
         used_names.add(empresa)
 
-        slug = empresa.lower().replace(" ", "").replace(".", "")[:12]
+        empresa_name = str(empresa)
+        # type: ignore
+        slug = empresa_name.lower().replace(" ", "").replace(".", "")[:12]
         has_phone = random.random() > 0.15
         has_email = random.random() > 0.2
         has_site = random.random() > 0.4
@@ -262,7 +329,9 @@ def _generate_mock_leads(request: ScrapeRequest, progress: ProgressCallback | No
 
         if progress and (i + 1) % max(1, quantidade // 4) == 0:
             pct = 25 + int((i / quantidade) * 65)
-            progress(min(pct, 90), f"Collected {i + 1}/{quantidade} leads")
+            if progress is not None:
+                # type: ignore
+                progress(min(pct, 90), f"Collected {i + 1}/{quantidade} leads")
 
     time.sleep(0.5)
 
@@ -271,7 +340,8 @@ def _generate_mock_leads(request: ScrapeRequest, progress: ProgressCallback | No
         nicho, pais, cidade, quantidade, len(leads),
     )
 
-    if progress:
+    if progress is not None:
+        # type: ignore
         progress(95, f"{len(leads)} mock leads generated")
 
     return leads
@@ -289,9 +359,10 @@ def _run_linkedin(request: ScrapeRequest, progress: ProgressCallback | None) -> 
 
 async def _run_linkedin_async(request: ScrapeRequest, progress: ProgressCallback | None) -> list[dict]:
     import os
-    from server.modules.scraper_service.engines.linkedin import LinkedInEngine
+    from server.modules.scraper_service.engines.linkedin import LinkedInEngine # type: ignore
 
     if progress:
+        # type: ignore
         progress(10, "Connecting to LinkedIn API")
 
     api_key = os.getenv("LINKEDIN_API_KEY", "")
@@ -311,6 +382,7 @@ async def _run_linkedin_async(request: ScrapeRequest, progress: ProgressCallback
         )
 
     if progress:
+        # type: ignore
         progress(80, "Normalizing LinkedIn results")
 
     normalized = normalize_leads(
@@ -332,9 +404,10 @@ def _run_facebook(request: ScrapeRequest, progress: ProgressCallback | None) -> 
 
 async def _run_facebook_async(request: ScrapeRequest, progress: ProgressCallback | None) -> list[dict]:
     import os
-    from server.modules.scraper_service.engines.facebook import FacebookEngine
+    from server.modules.scraper_service.engines.facebook import FacebookEngine # type: ignore
 
     if progress:
+        # type: ignore
         progress(10, "Connecting to Facebook Graph API")
 
     app_id = os.getenv("FACEBOOK_APP_ID", "")
@@ -355,6 +428,7 @@ async def _run_facebook_async(request: ScrapeRequest, progress: ProgressCallback
         )
 
     if progress:
+        # type: ignore
         progress(80, "Normalizing Facebook results")
 
     normalized = normalize_leads(
@@ -365,24 +439,71 @@ async def _run_facebook_async(request: ScrapeRequest, progress: ProgressCallback
 
 
 # --------------------------------------------------------------------------
+# Procura Servico engine
+# --------------------------------------------------------------------------
+def _run_procura_servico(request: ScrapeRequest, progress: ProgressCallback | None) -> list[dict]:
+    try:
+        return asyncio.run(_run_procura_servico_async(request, progress))
+    except Exception as exc:
+        raise RuntimeError(f"Procura Servico scraping failed: {exc}") from exc
+
+
+async def _run_procura_servico_async(request: ScrapeRequest, progress: ProgressCallback | None) -> list[dict]:
+    from server.modules.scraper_service.engines.procura_servico import ProcuraServicoScraper # type: ignore
+
+    if progress:
+        # type: ignore
+        progress(10, "Initializing Procura Servico search")
+
+    engine = ProcuraServicoScraper(headless=True, slowmo_ms=0)
+    raw_leads = await engine.search_leads(
+        pais=request.pais,
+        nicho=request.nicho,
+        cidade=request.cidade,
+        limite=request.quantidade,
+    )
+
+    normalized = normalize_leads(
+        raw_leads[:request.quantidade],
+        nicho=request.nicho,
+        pais=request.pais,
+        cidade=request.cidade,
+        source="procura_servico",
+    )
+
+    normalized = deduplicate(normalized)
+
+    logger.info(
+        "[SCRAPER] Procura Servico | Niche: %s | Country: %s | City: %s | Qty: %d | Results: %d",
+        request.nicho, request.pais, request.cidade, request.quantidade, len(normalized),
+    )
+
+    if progress:
+        # type: ignore
+        progress(95, "Procura Servico leads collected successfully")
+
+    return normalized
+
+# --------------------------------------------------------------------------
 # Market estimation (used by market intelligence service)
 # --------------------------------------------------------------------------
-def estimate_market_company_count(nicho: str, cidade: str, pais: str, sample_size: int = 120) -> int:
+def estimate_market_company_count(nicho: str, cidade: str | None, pais: str, sample_size: int = 120) -> int:
     """Estimate the number of companies in a market by sampling."""
-    nicho = (nicho or "").strip()
-    pais = (pais or "").strip()
-    cidade = (cidade or "").strip() or None
+    nicho_str = (nicho or "").strip()
+    pais_str = (pais or "").strip()
+    c_str = (cidade or "").strip()
+    cidade_val: str | None = c_str if c_str else None
 
-    if not nicho:
+    if not nicho_str:
         raise ValueError("Niche is required for market estimation.")
-    if not pais:
+    if not pais_str:
         raise ValueError("Country is required for market estimation.")
 
     sampled = search_leads(
         ScrapeRequest(
-            nicho=nicho,
-            cidade=cidade,
-            pais=pais,
+            nicho=nicho_str,
+            cidade=cidade_val,
+            pais=pais_str,
             quantidade=max(10, min(sample_size, 200)),
         )
     )

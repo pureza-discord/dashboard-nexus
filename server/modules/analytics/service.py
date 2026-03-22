@@ -1,10 +1,10 @@
-﻿from collections import defaultdict
+from collections import defaultdict
 from datetime import datetime
 
-from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy import func # type: ignore
+from sqlalchemy.orm import Session # type: ignore
 
-from server.db.models import Lead, LeadStatus, User
+from server.db.models import Lead, LeadStatus, User # type: ignore
 
 
 def _safe_float(value) -> float:
@@ -31,17 +31,17 @@ def get_overview(db: Session, user: User) -> dict:
 
     for lead in leads:
         stage = lead.status.value
-        pipeline_counts[stage] += 1
+        pipeline_counts[stage] += 1 # type: ignore
 
         ticket = _safe_float(lead.ticket_estimado)
         chance = _safe_float(lead.chance_fechamento)
 
         if lead.status != LeadStatus.perdidos:
-            potential_revenue += ticket
-        expected_revenue += ticket * (chance / 100.0)
+            potential_revenue += ticket # type: ignore
+        expected_revenue += ticket * (chance / 100.0) # type: ignore
 
         if lead.created_at and lead.created_at >= month_start:
-            leads_this_month += 1
+            leads_this_month += 1 # type: ignore
 
         niche_key = (lead.nicho or "Sem nicho").strip() or "Sem nicho"
         city_key = (lead.cidade or "Sem cidade").strip() or "Sem cidade"
@@ -53,10 +53,10 @@ def get_overview(db: Session, user: User) -> dict:
             by_niche[niche_key]["closed"] += 1
             by_city[city_key]["closed"] += 1
             month_label = lead.updated_at.strftime("%Y-%m") if lead.updated_at else now.strftime("%Y-%m")
-            revenue_by_month[month_label] += ticket
+            revenue_by_month[month_label] += ticket # type: ignore
 
     closed = pipeline_counts[LeadStatus.fechados.value]
-    conversion_rate = (closed / max(total, 1)) * 100.0
+    conversion_rate = (closed / max(total, 1)) * 100.0 # type: ignore
 
     pipeline = [
         {"stage": LeadStatus.novos.value, "label": "Novos", "count": pipeline_counts[LeadStatus.novos.value]},
@@ -87,7 +87,7 @@ def get_overview(db: Session, user: User) -> dict:
             "nicho": niche,
             "total": values["total"],
             "closed": values["closed"],
-            "conversion_rate": round((values["closed"] / max(values["total"], 1)) * 100.0, 2),
+            "conversion_rate": round(float(values["closed"] / max(values["total"], 1)) * 100.0, 2), # type: ignore
         }
         for niche, values in sorted(by_niche.items(), key=lambda item: item[1]["total"], reverse=True)
     ]
@@ -97,13 +97,13 @@ def get_overview(db: Session, user: User) -> dict:
             "cidade": city,
             "total": values["total"],
             "closed": values["closed"],
-            "conversion_rate": round((values["closed"] / max(values["total"], 1)) * 100.0, 2),
+            "conversion_rate": round(float(values["closed"] / max(values["total"], 1)) * 100.0, 2), # type: ignore
         }
         for city, values in sorted(by_city.items(), key=lambda item: item[1]["total"], reverse=True)
     ]
 
     revenue_series = [
-        {"month": month, "revenue": round(value, 2)}
+        {"month": month, "revenue": round(float(value), 2)} # type: ignore
         for month, value in sorted(revenue_by_month.items(), key=lambda item: item[0])
     ]
 
@@ -112,7 +112,7 @@ def get_overview(db: Session, user: User) -> dict:
     last_six = []
     for _ in range(6):
         label = month_cursor.strftime("%Y-%m")
-        last_six.append({"month": label, "revenue": round(revenue_by_month.get(label, 0.0), 2)})
+        last_six.append({"month": label, "revenue": round(float(revenue_by_month.get(label, 0.0)), 2)}) # type: ignore
         if month_cursor.month == 1:
             month_cursor = month_cursor.replace(year=month_cursor.year - 1, month=12)
         else:
@@ -121,9 +121,9 @@ def get_overview(db: Session, user: User) -> dict:
     return {
         "leads_this_month": leads_this_month,
         "total_leads": total,
-        "potential_revenue": round(potential_revenue, 2),
-        "expected_revenue": round(expected_revenue, 2),
-        "conversion_rate": round(conversion_rate, 2),
+        "potential_revenue": round(float(potential_revenue), 2), # type: ignore
+        "expected_revenue": round(float(expected_revenue), 2), # type: ignore
+        "conversion_rate": round(float(conversion_rate), 2), # type: ignore
         "pipeline": pipeline,
         "conversion_by_niche": conversion_by_niche,
         "conversion_by_city": conversion_by_city,
@@ -143,6 +143,6 @@ def quick_metrics(db: Session, user: User) -> dict:
     return {
         "total": int(total_count),
         "closed": int(closed_count),
-        "conversion_rate": round((closed_count / max(total_count, 1)) * 100, 2),
+        "conversion_rate": round(float(closed_count / max(total_count, 1)) * 100, 2), # type: ignore
     }
 

@@ -43,7 +43,7 @@ def _get_sdk():
     global _sdk
     if _sdk is None:
         try:
-            import mercadopago
+            import mercadopago  # type: ignore
         except ImportError:
             raise RuntimeError("mercadopago SDK not installed. Run: pip install mercadopago")
         token = os.getenv("MERCADO_PAGO_ACCESS_TOKEN", "")
@@ -83,14 +83,14 @@ def create_pix_payment(
     expiration = (datetime.utcnow() + timedelta(minutes=30)).isoformat() + "Z"
 
     payment_data = {
-        "transaction_amount": round(amount_brl, 2),
+        "transaction_amount": float(round(float(amount_brl), 2)),  # type: ignore
         "description": description,
         "payment_method_id": "pix",
         "payer": {
             "email": user.email,
         },
         "date_of_expiration": expiration,
-        "external_reference": f"user_{user.id}_{idempotency[:8]}",
+        "external_reference": f"user_{user.id}_{str(idempotency)[:8]}",  # type: ignore
         "metadata": {
             "user_id": str(user.id),
             **metadata,
